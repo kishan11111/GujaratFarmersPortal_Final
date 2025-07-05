@@ -1,0 +1,572 @@
+﻿<!DOCTYPE html>
+<html lang="gu" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ગુજરાત ખેડૂત માર્કેટ</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Google Fonts for Gujarati Support -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/master-layout.css" asp-append-version="true" />
+
+    <!-- Page Specific CSS -->
+    @await RenderSectionAsync("Styles", required: false)
+
+    <!-- Meta Tags for SEO -->
+    <meta name="description" content="Gujarat Farmers Market - ગુજરાતના ખેડૂતો માટે સૌથી મોટું ઓનલાઇન માર્કેટપ્લેસ">
+    <meta name="keywords" content="gujarat farmers, ખેડૂત, tractor, કૃષિ, agriculture, marketplace">
+    <meta name="author" content="Gujarat Farmers Market">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ગુજરાત ખેડૂત માર્કેટ - Gujarat Farmers Market">
+    <meta property="og:description" content="ગુજરાતના ખેડૂતો માટે સૌથી મોટું ઓનલાઇન માર્કેટપ્લેસ">
+    <meta property="og:image" content="/images/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="ગુજરાત ખેડૂત માર્કેટ">
+    <meta property="twitter:description" content="ગુજરાતના ખેડૂતો માટે સૌથી મોટું ઓનલાઇન માર્કેટપ્લેસ">
+</head>
+<body class="@(User.IsInRole("Admin") ? "admin-layout" : "user-layout")" data-theme="light">
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner-content">
+            <div class="spinner"></div>
+            <p>લોડ થઈ રહ્યું છે...</p>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header id="main-header" class="main-header @(User.IsInRole("Admin") ? "admin-header" : "user-header")">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+
+                <!-- Logo Section -->
+                <div class="navbar-brand-section">
+                    <button class="sidebar-toggle d-lg-none" type="button" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a class="navbar-brand" href="@(User.IsInRole("Admin") ? "/Admin" : "/")">
+                        <div class="brand-logo">
+                            <span class="logo-icon">🌾</span>
+                            <div class="brand-text">
+                                <span class="brand-name">ગુજરાત ખેડૂત માર્કેટ</span>
+                                <small class="brand-subtitle">Gujarat Farmers Market</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Search Section (Only for User Layout) -->
+                @if (!User.IsInRole("Admin"))
+                {
+                    <div class="search-section d-none d-md-flex">
+                        <form class="search-form" method="get" action="/Search">
+                            <div class="search-input-group">
+                                <input type="text" name="q" class="search-input" placeholder="ટ્રેક્ટર, ગાય, જમીન... શોધો" value="@ViewBag.SearchQuery">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="search-suggestions" id="searchSuggestions"></div>
+                        </form>
+                    </div>
+                }
+
+                <!-- Right Side Navigation -->
+                <div class="navbar-nav-section">
+                    <ul class="navbar-nav align-items-center">
+
+                        <!-- Dark/Light Mode Toggle -->
+                        <li class="nav-item">
+                            <button class="nav-link theme-toggle" id="themeToggle" title="થીમ બદલો">
+                                <i class="fas fa-moon" id="themeIcon"></i>
+                            </button>
+                        </li>
+
+                        <!-- Language Toggle -->
+                        <li class="nav-item dropdown">
+                            <button class="nav-link language-toggle" data-bs-toggle="dropdown" title="ભાષા બદલો">
+                                <i class="fas fa-language"></i>
+                                <span class="d-none d-sm-inline">ગુજ</span>
+                            </button>
+                            <ul class="dropdown-menu language-menu">
+                                <li><a class="dropdown-item" href="#" data-lang="gu"><i class="fas fa-check text-success me-2"></i>ગુજરાતી</a></li>
+                                <li><a class="dropdown-item" href="#" data-lang="en"><i class="fas fa-circle me-2 text-muted"></i>English</a></li>
+                                <li><a class="dropdown-item" href="#" data-lang="hi"><i class="fas fa-circle me-2 text-muted"></i>हिंदी</a></li>
+                            </ul>
+                        </li>
+
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <!-- Notifications -->
+                            <li class="nav-item dropdown">
+                                <button class="nav-link notification-toggle position-relative" data-bs-toggle="dropdown" title="નોટિફિકેશન">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="notification-badge" id="notificationCount">3</span>
+                                </button>
+                                <div class="dropdown-menu notification-menu">
+                                    <div class="notification-header">
+                                        <h6>નોટિફિકેશન</h6>
+                                        <a href="#" class="mark-all-read">બધા વાંચ્યા તરીકે માર્ક કરો</a>
+                                    </div>
+                                    <div class="notification-list" id="notificationList">
+                                        <div class="notification-item unread">
+                                            <div class="notification-icon">
+                                                <i class="fas fa-heart text-danger"></i>
+                                            </div>
+                                            <div class="notification-content">
+                                                <p>કોઈએ તમારી પોસ્ટને પસંદ કરી</p>
+                                                <small>2 મિનિટ પહેલા</small>
+                                            </div>
+                                        </div>
+                                        <div class="notification-item">
+                                            <div class="notification-icon">
+                                                <i class="fas fa-comment text-primary"></i>
+                                            </div>
+                                            <div class="notification-content">
+                                                <p>નવો સંદેશ આવ્યો છે</p>
+                                                <small>10 મિનિટ પહેલા</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="notification-footer">
+                                        <a href="/Notifications">બધા નોટિફિકેશન જુઓ</a>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Messages (Only for Users) -->
+                            @if (!User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link position-relative" href="/Messages" title="સંદેશા">
+                                        <i class="fas fa-envelope"></i>
+                                        <span class="message-badge" id="messageCount">1</span>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- User Profile Dropdown -->
+                            <li class="nav-item dropdown">
+                                <button class="nav-link user-profile-toggle d-flex align-items-center" data-bs-toggle="dropdown">
+                                    <div class="user-avatar">
+                                        <img src="@(ViewBag.UserProfileImage ?? "/images/default-avatar.png")"
+                                             alt="પ્રોફાઇલ" class="avatar-img">
+                                        <div class="status-indicator online"></div>
+                                    </div>
+                                    <div class="user-info d-none d-sm-block">
+                                        <span class="user-name">@(ViewBag.UserFullName ?? "વપરાશકર્તા")</span>
+                                        <small class="user-role">@(User.IsInRole("Admin") ? "એડમિન" : "વપરાશકર્તા")</small>
+                                    </div>
+                                    <i class="fas fa-chevron-down ms-2"></i>
+                                </button>
+                                <ul class="dropdown-menu user-menu">
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><a class="dropdown-item" href="/Admin/Profile"><i class="fas fa-user me-2"></i>મારી પ્રોફાઇલ</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Settings"><i class="fas fa-cog me-2"></i>સેટિંગ્સ</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="/Admin/Dashboard"><i class="fas fa-tachometer-alt me-2"></i>ડેશબોર્ડ</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Users"><i class="fas fa-users me-2"></i>વપરાશકર્તાઓ</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Posts"><i class="fas fa-list me-2"></i>પોસ્ટ્સ</a></li>
+                                    }
+                                    else
+                                    {
+                                        <li><a class="dropdown-item" href="/Profile"><i class="fas fa-user me-2"></i>મારી પ્રોફાઇલ</a></li>
+                                        <li><a class="dropdown-item" href="/Posts/My"><i class="fas fa-list me-2"></i>મારી જાહેરાતો</a></li>
+                                        <li><a class="dropdown-item" href="/Favorites"><i class="fas fa-heart me-2"></i>પસંદીદા</a></li>
+                                        <li><a class="dropdown-item" href="/Settings"><i class="fas fa-cog me-2"></i>સેટિંગ્સ</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="/Account/Logout"><i class="fas fa-sign-out-alt me-2"></i>લૉગ આઉટ</a></li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <!-- Login/Register Links -->
+                            <li class="nav-item">
+                                <a class="nav-link login-btn" href="/Account/Login">
+                                    <i class="fas fa-sign-in-alt me-1"></i>લૉગિન
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link register-btn" href="/Account/Register">
+                                    <i class="fas fa-user-plus me-1"></i>નોંધણી
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Mobile Search (Only for User Layout) -->
+        @if (!User.IsInRole("Admin"))
+        {
+            <div class="mobile-search d-md-none">
+                <form class="search-form" method="get" action="/Search">
+                    <div class="search-input-group">
+                        <input type="text" name="q" class="search-input" placeholder="શોધો..." value="@ViewBag.SearchQuery">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        }
+    </header>
+
+    <!-- Sidebar for Admin/Navigation -->
+    @if (User.IsInRole("Admin"))
+    {
+        <nav id="sidebar" class="admin-sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h5>એડમિન પેનલ</h5>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Dashboard" ? "active" : "")" href="/Admin/Dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>ડેશબોર્ડ</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Users" ? "active" : "")" href="/Admin/Users">
+                            <i class="fas fa-users"></i>
+                            <span>વપરાશકર્તાઓ</span>
+                            <span class="badge bg-primary">245</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Posts" ? "active" : "")" href="/Admin/Posts">
+                            <i class="fas fa-list"></i>
+                            <span>પોસ્ટ્સ</span>
+                            <span class="badge bg-warning">12</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Categories" ? "active" : "")" href="/Admin/Categories">
+                            <i class="fas fa-th-large"></i>
+                            <span>કેટેગરી</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Reports" ? "active" : "")" href="/Admin/Reports">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>રિપોર્ટ્સ</span>
+                            <span class="badge bg-danger">3</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Analytics" ? "active" : "")" href="/Admin/Analytics">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>એનાલિટિક્સ</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewBag.ActivePage == "Settings" ? "active" : "")" href="/Admin/Settings">
+                            <i class="fas fa-cog"></i>
+                            <span>સેટિંગ્સ</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    }
+    else if (User.Identity.IsAuthenticated)
+    {
+        <!-- User Quick Actions Sidebar -->
+        <nav id="sidebar" class="user-sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h6>ક્વિક એક્શન</h6>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Posts/Create">
+                            <i class="fas fa-plus"></i>
+                            <span>નવી જાહેરાત</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Posts/My">
+                            <i class="fas fa-list"></i>
+                            <span>મારી જાહેરાતો</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Favorites">
+                            <i class="fas fa-heart"></i>
+                            <span>પસંદીદા</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Messages">
+                            <i class="fas fa-envelope"></i>
+                            <span>સંદેશા</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    }
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="main-content @(User.IsInRole("Admin") ? "with-sidebar" : "")">
+        <div class="content-wrapper">
+
+            <!-- Breadcrumb Navigation -->
+            @if (ViewBag.ShowBreadcrumb != false)
+            {
+                <nav aria-label="breadcrumb" class="breadcrumb-nav">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="@(User.IsInRole("Admin") ? "/Admin" : "/")">
+                                <i class="fas fa-home"></i>
+                                @(User.IsInRole("Admin") ? "એડમિન" : "હોમ")
+                            </a>
+                        </li>
+                        @if (ViewBag.BreadcrumbItems != null)
+                        {
+                            @foreach (var item in ViewBag.BreadcrumbItems as List<dynamic>)
+                            {
+                                if (item.IsActive)
+                                {
+                                    <li class="breadcrumb-item active" aria-current="page">@item.Title</li>
+                                }
+                                else
+                                {
+                                    <li class="breadcrumb-item"><a href="@item.Url">@item.Title</a></li>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <li class="breadcrumb-item active" aria-current="page">@ViewData["Title"]</li>
+                        }
+                    </ol>
+                </nav>
+            }
+
+            <!-- Page Content -->
+            <div class="page-content">
+                @RenderBody()
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button (Only for Users) -->
+    @if (!User.IsInRole("Admin") && User.Identity.IsAuthenticated)
+    {
+        <div class="floating-action-menu">
+            <button class="fab-main" id="fabMain" title="ક્વિક એક્શન">
+                <i class="fas fa-plus"></i>
+            </button>
+            <div class="fab-menu" id="fabMenu">
+                <a href="/Posts/Create" class="fab-item" title="નવી જાહેરાત">
+                    <i class="fas fa-plus"></i>
+                    <span>નવી જાહેરાત</span>
+                </a>
+                <a href="/Messages" class="fab-item" title="સંદેશા">
+                    <i class="fas fa-envelope"></i>
+                    <span>સંદેશા</span>
+                </a>
+                <a href="/Profile" class="fab-item" title="પ્રોફાઇલ">
+                    <i class="fas fa-user"></i>
+                    <span>પ્રોફાઇલ</span>
+                </a>
+            </div>
+        </div>
+    }
+
+    <!-- Bottom Navigation for Mobile (Users Only) -->
+    @if (!User.IsInRole("Admin"))
+    {
+        <nav class="bottom-nav d-md-none">
+            <div class="bottom-nav-container">
+                <a href="/" class="bottom-nav-item @(ViewBag.ActivePage == "Home" ? "active" : "")">
+                    <i class="fas fa-home"></i>
+                    <span>હોમ</span>
+                </a>
+                <a href="/Categories" class="bottom-nav-item @(ViewBag.ActivePage == "Categories" ? "active" : "")">
+                    <i class="fas fa-th-large"></i>
+                    <span>કેટેગરી</span>
+                </a>
+                <a href="/Posts/Create" class="bottom-nav-item create-post">
+                    <i class="fas fa-plus"></i>
+                    <span>પોસ્ટ</span>
+                </a>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a href="/Favorites" class="bottom-nav-item @(ViewBag.ActivePage == "Favorites" ? "active" : "")">
+                        <i class="fas fa-heart"></i>
+                        <span>પસંદીદા</span>
+                    </a>
+                    <a href="/Profile" class="bottom-nav-item @(ViewBag.ActivePage == "Profile" ? "active" : "")">
+                        <i class="fas fa-user"></i>
+                        <span>પ્રોફાઇલ</span>
+                    </a>
+                }
+                else
+                {
+                    <a href="/Account/Login" class="bottom-nav-item">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>લૉગિન</span>
+                    </a>
+                    <a href="/Account/Register" class="bottom-nav-item">
+                        <i class="fas fa-user-plus"></i>
+                        <span>નોંધણી</span>
+                    </a>
+                }
+            </div>
+        </nav>
+    }
+
+    <!-- Footer -->
+    <footer class="main-footer @(User.IsInRole("Admin") ? "admin-footer" : "user-footer")">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5>ગુજરાત ખેડૂત માર્કેટ</h5>
+                        <p>ગુજરાતના ખેડૂતો માટે સૌથી મોટું અને વિશ્વસનીય ઓનલાઇન માર્કેટપ્લેસ. અહીં તમે ટ્રેક્ટર, પશુધન, જમીન અને અન્ય કૃષિ સંબંધિત વસ્તુઓ ખરીદી અને વેચી શકો છો.</p>
+                        <div class="social-links">
+                            <a href="#" title="Facebook"><i class="fab fa-facebook"></i></a>
+                            <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                            <a href="#" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6>મુખ્ય લિંક્સ</h6>
+                        <ul class="footer-links">
+                            <li><a href="/">હોમ</a></li>
+                            <li><a href="/Categories">કેટેગરી</a></li>
+                            <li><a href="/Posts">જાહેરાતો</a></li>
+                            <li><a href="/About">અમારા વિશે</a></li>
+                            <li><a href="/Contact">સંપર્ક</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6>સેવાઓ</h6>
+                        <ul class="footer-links">
+                            <li><a href="/Help">સહાય</a></li>
+                            <li><a href="/FAQ">પ્રશ્ન-ઉત્તર</a></li>
+                            <li><a href="/Safety">સુરક્ષા ટિપ્સ</a></li>
+                            <li><a href="/Guidelines">માર્ગદર્શિકા</a></li>
+                            <li><a href="/Feedback">પ્રતિસાદ</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6>કાયદેસર</h6>
+                        <ul class="footer-links">
+                            <li><a href="/Terms">નિયમો અને શરતો</a></li>
+                            <li><a href="/Privacy">ગોપનીયતા નીતિ</a></li>
+                            <li><a href="/Disclaimer">અસ્વીકરણ</a></li>
+                            <li><a href="/Cookies">કૂકીઝ નીતિ</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6>સંપર્ક માહિતી</h6>
+                        <div class="contact-info">
+                            <p><i class="fas fa-phone"></i> +91 98765 43210</p>
+                            <p><i class="fas fa-envelope"></i> info@gujaratfarmers.com</p>
+                            <p><i class="fas fa-map-marker-alt"></i> અમદાવાદ, ગુજરાત</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="footer-divider">
+            <div class="footer-bottom">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="copyright">© @DateTime.Now.Year ગુજરાત ખેડૂત માર્કેટ. બધા અધિકારો સુરક્ષિત.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="footer-meta">
+                            <span class="version">વર્ઝન 1.0</span>
+                            <span class="separator">|</span>
+                            <span class="last-updated">છેલ્લે અપડેટ: @DateTime.Now.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" class="back-to-top" title="ઉપર જાઓ">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery (for compatibility) -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="~/js/master-layout.js" asp-append-version="true"></script>
+
+    <!-- Page Specific Scripts -->
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Initialize Application -->
+    <script>
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Hide loading spinner
+            document.getElementById('loading-spinner').style.display = 'none';
+
+            // Initialize components
+            App.init();
+        });
+
+        // Global variables for JavaScript
+        window.AppConfig = {
+            baseUrl: '@Url.Content("~/")',
+            isAuthenticated: @(User.Identity.IsAuthenticated ? "true" : "false"),
+            isAdmin: @(User.IsInRole("Admin") ? "true" : "false"),
+            userId: '@(User.Identity.IsAuthenticated ? User.FindFirst("UserID")?.Value : "")',
+            userName: '@(User.Identity.IsAuthenticated ? User.Identity.Name : "")',
+            userFullName: '@(ViewBag.UserFullName ?? "")',
+            currentPage: '@(ViewBag.ActivePage ?? "")',
+            theme: localStorage.getItem('theme') || 'light',
+            language: localStorage.getItem('language') || 'gu'
+        };
+    </script>
+</body>
+</html>

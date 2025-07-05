@@ -1,0 +1,461 @@
+﻿@model GujaratFarmersPortal.Models.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "એડમિન ડેશબોર્ડ";
+    ViewBag.ShowBreadcrumb = false;
+}
+
+<div class="admin-dashboard">
+    <!-- Welcome Section -->
+    <div class="welcome-section mb-4">
+        <div class="welcome-card">
+            <div class="welcome-content">
+                <h1 class="welcome-title">
+                    <span class="welcome-icon">👋</span>
+                    સ્વાગત છે, @ViewBag.UserFullName
+                </h1>
+                <p class="welcome-subtitle">ગુજરાત ખેડૂત માર્કેટ એડમિન પેનલમાં આપનું સ્વાગત છે</p>
+                <div class="welcome-time">
+                    <i class="fas fa-clock"></i>
+                    આજે: @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("gu-IN"))
+                </div>
+            </div>
+            <div class="welcome-actions">
+                <a href="/Admin/Posts/Pending" class="btn btn-primary">
+                    <i class="fas fa-clock"></i>
+                    મંજૂરી બાકી પોસ્ટ્સ
+                    @if(Model.PendingPosts > 0)
+                    {
+                        <span class="badge bg-danger ms-2">@Model.PendingPosts</span>
+                    }
+                </a>
+                <a href="/Admin/Reports" class="btn btn-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    રિપોર્ટ્સ
+                    @if(Model.PendingReports > 0)
+                    {
+                        <span class="badge bg-danger ms-2">@Model.PendingReports</span>
+                    }
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-section mb-4">
+        <div class="row g-3">
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stats-card users-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.TotalUsers.ToString("N0")</h3>
+                        <p class="stats-label">કુલ વપરાશકર્તાઓ</p>
+                        <div class="stats-change">
+                            <span class="change-badge positive">
+                                <i class="fas fa-arrow-up"></i>
+                                +@Model.TodayUsers આજે
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stats-card posts-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.TotalPosts.ToString("N0")</h3>
+                        <p class="stats-label">કુલ પોસ્ટ્સ</p>
+                        <div class="stats-change">
+                            <span class="change-badge positive">
+                                <i class="fas fa-arrow-up"></i>
+                                +@Model.TodayPosts આજે
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stats-card pending-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.PendingPosts</h3>
+                        <p class="stats-label">મંજૂરી બાકી</p>
+                        <div class="stats-change">
+                            @if(Model.PendingPosts > 0)
+                            {
+                                <span class="change-badge warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    તાત્કાલિક ધ્યાન આપો
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="change-badge positive">
+                                    <i class="fas fa-check"></i>
+                                    બધું અપ ટુ ડેટ
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="stats-card categories-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.TotalCategories</h3>
+                        <p class="stats-label">કુલ કેટેગરીઓ</p>
+                        <div class="stats-change">
+                            <span class="change-badge neutral">
+                                <i class="fas fa-info-circle"></i>
+                                સક્રિય છે
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Analytics Section -->
+    <div class="charts-section mb-4">
+        <div class="row g-4">
+            <!-- User Registration Chart -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            માસિક વપરાશકર્તા નોંધણી
+                        </h3>
+                        <div class="chart-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="refreshChart('userChart')">
+                                <i class="fas fa-sync-alt"></i>
+                                રિફ્રેશ
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="userRegistrationChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-tachometer-alt text-success me-2"></i>
+                            ક્વિક સ્ટેટ્સ
+                        </h3>
+                    </div>
+                    <div class="chart-body">
+                        <div class="quick-stats">
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-icon">
+                                    <i class="fas fa-envelope text-info"></i>
+                                </div>
+                                <div class="quick-stat-content">
+                                    <h4>@Model.TodayMessages</h4>
+                                    <p>આજના સંદેશા</p>
+                                </div>
+                            </div>
+                            
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-icon">
+                                    <i class="fas fa-eye text-warning"></i>
+                                </div>
+                                <div class="quick-stat-content">
+                                    <h4>@((Model.TotalPosts * 15).ToString("N0"))</h4>
+                                    <p>કુલ વ્યૂઝ</p>
+                                </div>
+                            </div>
+                            
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-icon">
+                                    <i class="fas fa-heart text-danger"></i>
+                                </div>
+                                <div class="quick-stat-content">
+                                    <h4>@((Model.TotalPosts * 8).ToString("N0"))</h4>
+                                    <p>કુલ લાઇક્સ</p>
+                                </div>
+                            </div>
+                            
+                            <div class="quick-stat-item">
+                                <div class="quick-stat-icon">
+                                    <i class="fas fa-star text-success"></i>
+                                </div>
+                                <div class="quick-stat-content">
+                                    <h4>4.8</h4>
+                                    <p>એવરેજ રેટિંગ</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Performance and Top Districts -->
+    <div class="performance-section mb-4">
+        <div class="row g-4">
+            <!-- Category Performance -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-pie text-warning me-2"></i>
+                            કેટેગરી પ્રદર્શન
+                        </h3>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="categoryChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Districts -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-map-marker-alt text-info me-2"></i>
+                            ટોપ જિલ્લાઓ
+                        </h3>
+                    </div>
+                    <div class="chart-body">
+                        <div class="top-districts">
+                            @if(Model.TopDistricts != null && Model.TopDistricts.Any())
+                            {
+                                @for(int i = 0; i < Math.Min(Model.TopDistricts.Count, 10); i++)
+                                {
+                                    var district = Model.TopDistricts.ElementAt(i);
+                                    var percentage = i == 0 ? 100 : (int)(((dynamic)district).PostCount * 100.0 / ((dynamic)Model.TopDistricts.First()).PostCount);
+                                    
+                                    <div class="district-item">
+                                        <div class="district-info">
+                                            <span class="district-rank">#@(i + 1)</span>
+                                            <span class="district-name">@(((dynamic)district).DistrictName ?? "અજ્ઞાત")</span>
+                                        </div>
+                                        <div class="district-stats">
+                                            <span class="district-count">@(((dynamic)district).PostCount ?? 0) પોસ્ટ્સ</span>
+                                            <div class="district-progress">
+                                                <div class="progress-bar" style="width: @percentage%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="no-data">
+                                    <i class="fas fa-info-circle text-muted"></i>
+                                    <p>હાલમાં કોઈ ડેટા ઉપલબ્ધ નથી</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="activity-section">
+        <div class="row g-4">
+            <!-- Recent Posts -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3 class="activity-title">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            તાજેતરની પોસ્ટ્સ
+                        </h3>
+                        <a href="/Admin/Posts" class="btn btn-sm btn-outline-primary">
+                            બધી જુઓ
+                            <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="activity-body">
+                        @if(Model.RecentPosts != null && Model.RecentPosts.Any())
+                        {
+                            @foreach(var post in Model.RecentPosts.Take(5))
+                            {
+                                <div class="activity-item">
+                                    <div class="activity-avatar">
+                                        @if(!string.IsNullOrEmpty(post.PrimaryImage))
+                                        {
+                                            <img src="@post.PrimaryImage" alt="@post.Title" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-placeholder">
+                                                <i class="fas fa-image"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="activity-content">
+                                        <h4 class="activity-name">@post.Title</h4>
+                                        <p class="activity-description">
+                                            <span class="category-badge">@post.CategoryNameGuj</span>
+                                            <span class="price-badge">₹@post.Price?.ToString("N0")</span>
+                                        </p>
+                                        <div class="activity-meta">
+                                            <span class="activity-time">
+                                                <i class="fas fa-clock"></i>
+                                                @post.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                                            </span>
+                                            <span class="activity-location">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                @post.DistrictName
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="activity-actions">
+                                        <a href="/Admin/Posts/@post.PostID" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-data">
+                                <i class="fas fa-info-circle text-muted"></i>
+                                <p>હાલમાં કોઈ તાજેતરની પોસ્ટ્સ નથી</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Users -->
+            <div class="col-xl-6 col-lg-6">
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3 class="activity-title">
+                            <i class="fas fa-user-plus text-success me-2"></i>
+                            નવા વપરાશકર્તાઓ
+                        </h3>
+                        <a href="/Admin/Users" class="btn btn-sm btn-outline-success">
+                            બધા જુઓ
+                            <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="activity-body">
+                        @if(Model.RecentUsers != null && Model.RecentUsers.Any())
+                        {
+                            @foreach(var user in Model.RecentUsers.Take(5))
+                            {
+                                <div class="activity-item">
+                                    <div class="activity-avatar">
+                                        @if(!string.IsNullOrEmpty(user.ProfileImage))
+                                        {
+                                            <img src="@user.ProfileImage" alt="@user.FullName" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-placeholder user-avatar">
+                                                @user.FirstName?.Substring(0, 1).ToUpper()
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="activity-content">
+                                        <h4 class="activity-name">@user.FullName</h4>
+                                        <p class="activity-description">
+                                            <span class="username-badge">@@@user.UserName</span>
+                                            @if(user.Rating > 0)
+                                            {
+                                                <span class="rating-badge">
+                                                    <i class="fas fa-star"></i>
+                                                    @user.Rating.ToString("F1")
+                                                </span>
+                                            }
+                                        </p>
+                                        <div class="activity-meta">
+                                            <span class="activity-time">
+                                                <i class="fas fa-calendar"></i>
+                                                @user.CreatedDate.ToString("dd/MM/yyyy")
+                                            </span>
+                                            <span class="activity-status">
+                                                @if(user.IsActive)
+                                                {
+                                                    <span class="status-badge active">
+                                                        <i class="fas fa-check"></i>
+                                                        સક્રિય
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="status-badge inactive">
+                                                        <i class="fas fa-times"></i>
+                                                        નિષ્ક્રિય
+                                                    </span>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="activity-actions">
+                                        <a href="/Admin/Users/@user.UserID" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-data">
+                                <i class="fas fa-info-circle text-muted"></i>
+                                <p>હાલમાં કોઈ નવા વપરાશકર્તાઓ નથી</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin-dashboard.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/admin-dashboard.js" asp-append-version="true"></script>
+    
+    <script>
+        // Initialize dashboard with data
+        document.addEventListener('DOMContentLoaded', function() {
+            // User Registration Chart Data
+            const userChartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyUserStats ?? new List<object>()));
+            
+            // Category Chart Data  
+            const categoryChartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryPostStats ?? new List<object>()));
+            
+            // Initialize charts
+            AdminDashboard.initUserRegistrationChart(userChartData);
+            AdminDashboard.initCategoryChart(categoryChartData);
+            
+            // Auto-refresh every 5 minutes
+            setInterval(function() {
+                AdminDashboard.refreshStats();
+            }, 300000);
+        });
+    </script>
+}
