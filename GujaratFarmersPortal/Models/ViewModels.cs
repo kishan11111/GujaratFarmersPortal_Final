@@ -19,7 +19,7 @@ namespace GujaratFarmersPortal.Models
         [Display(Name = "મને યાદ રાખો")]
         public bool RememberMe { get; set; }
 
-        public string ReturnUrl { get; set; }
+        //public string ReturnUrl { get; set; }
     }
 
     // Register View Model

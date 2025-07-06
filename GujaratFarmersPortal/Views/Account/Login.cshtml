@@ -1,0 +1,193 @@
+﻿@model GujaratFarmersPortal.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "લૉગિન - ગુજરાત ખેડૂત પોર્ટલ";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-icon">
+                <i class="fas fa-seedling"></i>
+            </div>
+            <h1>ખેડૂત પોર્ટલ</h1>
+            <p>તમારા ખેતીના સાધનો અને ઉત્પાદનો માટે</p>
+        </div>
+
+        <div class="login-form">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>@TempData["SuccessMessage"]</span>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>@TempData["ErrorMessage"]</span>
+                </div>
+            }
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="validation-summary">
+                    @Html.ValidationSummary(false, "", new { @class = "alert alert-danger" })
+                </div>
+            }
+
+            <form id="loginForm" method="post" asp-action="Login" asp-controller="Account">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ReturnUrl" value="@ViewBag.ReturnUrl" />
+
+                <div class="form-group">
+                    <label asp-for="UserName" class="form-label">
+                        <i class="fas fa-user"></i> યુઝરનેમ/ઈમેઈલ/મોબાઈલ
+                    </label>
+                    <input asp-for="UserName" class="form-control" 
+                           placeholder="તમારું યુઝરનેમ, ઈમેઈલ અથવા મોબાઈલ નંબર દાખલ કરો" 
+                           autocomplete="username" />
+                    <span asp-validation-for="UserName" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label">
+                        <i class="fas fa-lock"></i> પાસવર્ડ
+                    </label>
+                    <div class="input-group">
+                        <input asp-for="Password" type="password" class="form-control" 
+                               placeholder="તમારો પાસવર્ડ દાખલ કરો" 
+                               autocomplete="current-password" />
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="field-validation-error"></span>
+                </div>
+
+                <div class="form-check">
+                    <input asp-for="RememberMe" type="checkbox" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">
+                        મને યાદ રાખો
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="loginBtn">
+                    <i class="fas fa-spinner fa-spin loading-spinner"></i>
+                    <span class="btn-text">
+                        <i class="fas fa-sign-in-alt"></i> લૉગિન કરો
+                    </span>
+                </button>
+
+                <div class="text-links">
+                    <a href="@Url.Action("ForgotPassword", "Account")">
+                        <i class="fas fa-key"></i> પાસવર્ડ ભૂલી ગયા?
+                    </a>
+                </div>
+
+                <div class="divider">
+                    <span>અથવા</span>
+                </div>
+
+                <div class="register-section">
+                    <p>શું તમારું એકાઉન્ટ નથી?</p>
+                    <a href="@Url.Action("Register", "Account")" class="btn btn-outline-primary">
+                        <i class="fas fa-user-plus"></i> નવું એકાઉન્ટ બનાવો
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@3.2.12/dist/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.querySelector('input[name="Password"]');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Form submission with loading state
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('loginBtn');
+            
+            // Add loading state
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            
+            // Remove loading state after 10 seconds (failsafe)
+            setTimeout(function() {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }, 10000);
+        });
+
+        // Auto-focus on username field
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.querySelector('input[name="UserName"]');
+            if (usernameInput && !usernameInput.value) {
+                usernameInput.focus();
+            }
+        });
+
+        // Remove validation errors on input
+        document.querySelectorAll('.form-control').forEach(function(input) {
+            input.addEventListener('input', function() {
+                this.classList.remove('input-validation-error');
+                const errorSpan = this.parentNode.querySelector('.field-validation-error');
+                if (errorSpan) {
+                    errorSpan.textContent = '';
+                }
+            });
+        });
+
+        // Enhanced form interactions
+        document.querySelectorAll('.form-control').forEach(function(input) {
+            input.addEventListener('focus', function() {
+                this.parentNode.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentNode.classList.remove('focused');
+            });
+        });
+    </script>
+</body>
+</html>

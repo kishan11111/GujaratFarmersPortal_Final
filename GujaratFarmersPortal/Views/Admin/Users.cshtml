@@ -1,0 +1,769 @@
+﻿@model GujaratFarmersPortal.Models.PagedResult<GujaratFarmersPortal.Models.User>
+
+@{
+    ViewData["Title"] = "વપરાશકર્તા મેનેજમેન્ટ";
+    ViewBag.ActivePage = "Users";
+}
+
+<div class="admin-dashboard">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="page-title">
+                    <i class="fas fa-users text-primary"></i>
+                    વપરાશકર્તા મેનેજમેન્ટ
+                </h1>
+                <p class="page-subtitle">સિસ્ટમમાં રજિસ્ટર થયેલા બધા વપરાશકર્તાઓનું મેનેજમેન્ટ</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="exportUsers()">
+                        <i class="fas fa-download"></i> એક્સપોર્ટ
+                    </button>
+                    <button class="btn btn-primary" onclick="refreshUsers()">
+                        <i class="fas fa-sync-alt"></i> રિફ્રેશ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="filter-section mb-4">
+        <div class="filter-card">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">શોધો</label>
+                    <div class="search-box">
+                        <input type="text" class="form-control" id="searchInput"
+                               placeholder="નામ, યુઝરનેમ અથવા ઈમેઈલ દ્વારા શોધો..."
+                               value="@ViewBag.SearchQuery">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">સ્થિતિ</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">બધા</option>
+                        <option value="active">સક્રિય</option>
+                        <option value="inactive">નિષ્ક્રિય</option>
+                        <option value="banned">બ્લોક</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">રાજ્ય</label>
+                    <select class="form-select" id="stateFilter">
+                        <option value="">બધા રાજ્યો</option>
+                        <option value="gujarat">ગુજરાત</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">સોર્ટ</label>
+                    <select class="form-select" id="sortFilter">
+                        <option value="newest">નવા પહેલા</option>
+                        <option value="oldest">જૂના પહેલા</option>
+                        <option value="name">નામ મુજબ</option>
+                        <option value="posts">પોસ્ટ્સ મુજબ</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> ફિલ્ટર કરો
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Stats -->
+    <div class="stats-row mb-4">
+        <div class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card users-stats">
+                    <div class="stats-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.TotalRecords</h3>
+                        <p class="stats-label">કુલ વપરાશકર્તાઓ</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card active-stats">
+                    <div class="stats-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.Items.Count(u => u.IsActive)</h3>
+                        <p class="stats-label">સક્રિય વપરાશકર્તાઓ</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card inactive-stats">
+                    <div class="stats-icon">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.Items.Count(u => !u.IsActive)</h3>
+                        <p class="stats-label">નિષ્ક્રિય વપરાશકર્તાઓ</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stats-card banned-stats">
+                    <div class="stats-icon">
+                        <i class="fas fa-user-slash"></i>
+                    </div>
+                    <div class="stats-content">
+                        <h3 class="stats-number">@Model.Items.Count(u => u.IsBanned)</h3>
+                        <p class="stats-label">બ્લોક વપરાશકર્તાઓ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="bulk-actions mb-3" id="bulkActions" style="display: none;">
+        <div class="bulk-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="bulk-info">
+                    <span id="selectedCount">0</span> વપરાશકર્તાઓ પસંદ કર્યા
+                </div>
+                <div class="bulk-buttons">
+                    <button class="btn btn-success btn-sm" onclick="bulkActivate()">
+                        <i class="fas fa-check"></i> સક્રિય કરો
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="bulkDeactivate()">
+                        <i class="fas fa-pause"></i> નિષ્ક્રિય કરો
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="bulkBan()">
+                        <i class="fas fa-ban"></i> બ્લોક કરો
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="data-card">
+        <div class="card-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list"></i> વપરાશકર્તાઓની યાદી
+                </h5>
+                <div class="view-options">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary btn-sm active" id="tableView">
+                            <i class="fas fa-table"></i>
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" id="gridView">
+                            <i class="fas fa-th"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Items.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header">
+                            <tr>
+                                <th width="40">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                    </div>
+                                </th>
+                                <th>વપરાશકર્તા</th>
+                                <th>સંપર્ક માહિતી</th>
+                                <th>સ્થાન</th>
+                                <th>પોસ્ટ્સ</th>
+                                <th>રેટિંગ</th>
+                                <th>જોડાણ તારીખ</th>
+                                <th>સ્થિતિ</th>
+                                <th width="120">એક્શન્સ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model.Items)
+                            {
+                                <tr data-user-id="@user.UserID">
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input user-checkbox" type="checkbox" value="@user.UserID">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                @if (!string.IsNullOrEmpty(user.ProfileImage))
+                                                {
+                                                    <img src="@user.ProfileImage" alt="@user.FullName">
+                                                }
+                                                else
+                                                {
+                                                    <div class="avatar-placeholder">
+                                                        @user.FirstName?.FirstOrDefault()@user.LastName?.FirstOrDefault()
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="user-details">
+                                                <div class="user-name">@user.FullName</div>
+                                                <div class="username">@@@user.UserName</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="contact-info">
+                                            <div class="email">
+                                                <i class="fas fa-envelope text-muted"></i>
+                                                @user.Email
+                                            </div>
+                                            <div class="mobile">
+                                                <i class="fas fa-phone text-muted"></i>
+                                                @user.MobileNumber
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="location-info">
+                                            <i class="fas fa-map-marker-alt text-muted"></i>
+                                            @user.DistrictName, @user.StateName
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            @user.TotalPosts પોસ્ટ્સ
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="rating">
+                                            <div class="stars">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    <i class="fas fa-star @(i <= user.Rating ? "text-warning" : "text-muted")"></i>
+                                                }
+                                            </div>
+                                            <small class="text-muted">(@user.TotalReviews)</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="date-info">
+                                            @user.CreatedDate.ToString("dd/MM/yyyy")
+                                            <small class="text-muted d-block">@user.CreatedDate.ToString("HH:mm")</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (user.IsBanned)
+                                        {
+                                            <span class="status-badge banned">
+                                                <i class="fas fa-ban"></i> બ્લોક
+                                            </span>
+                                        }
+                                        else if (user.IsActive)
+                                        {
+                                            <span class="status-badge active">
+                                                <i class="fas fa-check-circle"></i> સક્રિય
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge inactive">
+                                                <i class="fas fa-pause-circle"></i> નિષ્ક્રિય
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="viewUser(@user.UserID)" title="વિગતો જુઓ">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-cog"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    @if (user.IsActive)
+                                                    {
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="deactivateUser(@user.UserID)">
+                                                                <i class="fas fa-pause text-warning"></i> નિષ્ક્રિય કરો
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    else
+                                                    {
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="activateUser(@user.UserID)">
+                                                                <i class="fas fa-check text-success"></i> સક્રિય કરો
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    @if (!user.IsBanned)
+                                                    {
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="banUser(@user.UserID)">
+                                                                <i class="fas fa-ban text-danger"></i> બ્લોક કરો
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    else
+                                                    {
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="unbanUser(@user.UserID)">
+                                                                <i class="fas fa-unlock text-success"></i> અનબ્લોક કરો
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="resetPassword(@user.UserID)">
+                                                            <i class="fas fa-key text-info"></i> પાસવર્ડ રીસેટ
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="/Admin/Users/@user.UserID/Posts">
+                                                            <i class="fas fa-list text-primary"></i> પોસ્ટ્સ જુઓ
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="no-data">
+                    <i class="fas fa-users"></i>
+                    <p>કોઈ વપરાશકર્તા મળ્યા નથી</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination-wrapper mt-4">
+            <nav aria-label="વપરાશકર્તા પેજીનેશન">
+                <ul class="pagination justify-content-center">
+                    @if (Model.CurrentPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(Model.CurrentPage - 1)&search=@ViewBag.SearchQuery">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    }
+
+                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                    {
+                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&search=@ViewBag.SearchQuery">@i</a>
+                        </li>
+                    }
+
+                    @if (Model.CurrentPage < Model.TotalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(Model.CurrentPage + 1)&search=@ViewBag.SearchQuery">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+            <div class="pagination-info">
+                <small class="text-muted">
+                    કુલ @Model.TotalRecords માંથી @((Model.CurrentPage - 1) * Model.PageSize + 1) થી @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalRecords) દર્શાવી રહ્યા છીએ
+                </small>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">વપરાશકર્તાની વિગતો</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <!-- User details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--admin-dark);
+        margin-bottom: 0.5rem;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        margin-bottom: 0;
+    }
+
+    .header-actions .btn {
+        margin-left: 0.5rem;
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+    }
+
+    .stats-row .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+
+    .users-stats .stats-icon {
+        background: var(--admin-gradient);
+    }
+
+    .active-stats .stats-icon {
+        background: var(--admin-success-gradient);
+    }
+
+    .inactive-stats .stats-icon {
+        background: var(--admin-warning-gradient);
+    }
+
+    .banned-stats .stats-icon {
+        background: var(--admin-danger-gradient);
+    }
+
+    .bulk-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .data-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+        background: #f8f9fa;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        background: var(--admin-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: var(--admin-dark);
+    }
+
+    .username {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .contact-info div {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .contact-info i {
+        width: 16px;
+        margin-right: 0.5rem;
+    }
+
+    .location-info {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .stars i {
+        font-size: 0.8rem;
+    }
+
+    .status-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .status-badge.active {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--admin-success);
+        }
+
+        .status-badge.inactive {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--admin-warning);
+        }
+
+        .status-badge.banned {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--admin-danger);
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .pagination-wrapper {
+        text-align: center;
+    }
+
+    .pagination-info {
+        margin-top: 1rem;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+    }
+
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+</style>
+
+<script>
+    // Select All functionality
+    document.getElementById('selectAll').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.user-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkActions();
+    });
+
+    // Individual checkbox change
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActions);
+    });
+
+    function updateBulkActions() {
+        const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
+        const bulkActions = document.getElementById('bulkActions');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (selectedCheckboxes.length > 0) {
+            bulkActions.style.display = 'block';
+            selectedCount.textContent = selectedCheckboxes.length;
+        } else {
+            bulkActions.style.display = 'none';
+        }
+    }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const state = document.getElementById('stateFilter').value;
+        const sort = document.getElementById('sortFilter').value;
+
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        if (state) params.append('state', state);
+        if (sort) params.append('sort', sort);
+
+        window.location.href = '/Admin/Users?' + params.toString();
+    }
+
+    function refreshUsers() {
+        window.location.reload();
+    }
+
+    function exportUsers() {
+        window.location.href = '/Admin/Users/Export';
+    }
+
+    // User Actions
+    function viewUser(userId) {
+        fetch(`/Admin/Users/${userId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('userDetailsContent').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+            });
+    }
+
+    function activateUser(userId) {
+        if (confirm('શું તમે આ વપરાશકર્તાને સક્રિય કરવા માંગો છો?')) {
+            fetch(`/Admin/Users/Activate/${userId}`, { method: 'POST' })
+                .then(() => window.location.reload());
+        }
+    }
+
+    function deactivateUser(userId) {
+        if (confirm('શું તમે આ વપરાશકર્તાને નિષ્ક્રિય કરવા માંગો છો?')) {
+            fetch(`/Admin/Users/Deactivate/${userId}`, { method: 'POST' })
+                .then(() => window.location.reload());
+        }
+    }
+
+    function banUser(userId) {
+        if (confirm('શું તમે આ વપરાશકર્તાને બ્લોક કરવા માંગો છો?')) {
+            fetch(`/Admin/Users/Ban/${userId}`, { method: 'POST' })
+                .then(() => window.location.reload());
+        }
+    }
+
+    function unbanUser(userId) {
+        if (confirm('શું તમે આ વપરાશકર્તાને અનબ્લોક કરવા માંગો છો?')) {
+            fetch(`/Admin/Users/Unban/${userId}`, { method: 'POST' })
+                .then(() => window.location.reload());
+        }
+    }
+
+    function resetPassword(userId) {
+        if (confirm('શું તમે આ વપરાશકર્તાનો પાસવર્ડ રીસેટ કરવા માંગો છો?')) {
+            fetch(`/Admin/Users/ResetPassword/${userId}`, { method: 'POST' })
+                .then(() => alert('પાસવર્ડ રીસેટ કરવામાં આવ્યો છે'));
+        }
+    }
+
+    // Bulk Actions
+    function bulkActivate() {
+        const selectedIds = getSelectedUserIds();
+        if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને સક્રિય કરવા માંગો છો?`)) {
+            fetch('/Admin/Users/BulkActivate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(selectedIds)
+            }).then(() => window.location.reload());
+        }
+    }
+
+    function bulkDeactivate() {
+        const selectedIds = getSelectedUserIds();
+        if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને નિષ્ક્રિય કરવા માંગો છો?`)) {
+            fetch('/Admin/Users/BulkDeactivate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(selectedIds)
+            }).then(() => window.location.reload());
+        }
+    }
+
+    function bulkBan() {
+        const selectedIds = getSelectedUserIds();
+        if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને બ્લોક કરવા માંગો છો?`)) {
+            fetch('/Admin/Users/BulkBan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(selectedIds)
+            }).then(() => window.location.reload());
+        }
+    }
+
+    function getSelectedUserIds() {
+        const selectedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
+        return Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.value));
+    }
+
+    // View toggle
+    document.getElementById('tableView').addEventListener('click', function () {
+        this.classList.add('active');
+        document.getElementById('gridView').classList.remove('active');
+        // Switch to table view
+    });
+
+    document.getElementById('gridView').addEventListener('click', function () {
+        this.classList.add('active');
+        document.getElementById('tableView').classList.remove('active');
+        // Switch to grid view (implement as needed)
+    });
+</script>
