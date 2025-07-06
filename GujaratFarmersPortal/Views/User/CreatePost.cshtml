@@ -1,0 +1,870 @@
+﻿@model PostCreateViewModel
+@{
+    ViewData["Title"] = "નવી જાહેરાત બનાવો";
+    ViewBag.ActivePage = "CreatePost";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/create-post.css" asp-append-version="true" />
+}
+
+<div class="create-post-container">
+    <div class="container-fluid">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <button class="back-btn" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1>નવી જાહેરાત બનાવો</h1>
+            <button type="submit" form="createPostForm" class="save-btn">
+                <i class="fas fa-check"></i>પ્રકાશિત કરો
+            </button>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" data-step="1">
+                <div class="step-circle">1</div>
+                <span>મૂળભૂત માહિતી</span>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle">2</div>
+                <span>ફોટો અને વિગતો</span>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-circle">3</div>
+                <span>સ્થાન અને કિંમત</span>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-circle">4</div>
+                <span>પ્રિવ્યૂ</span>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <form id="createPostForm" asp-action="CreatePost" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            
+            <!-- Step 1: Basic Information -->
+            <div class="form-step active" id="step-1">
+                <div class="step-content">
+                    <h2>કેટેગરી અને શીર્ષક</h2>
+                    
+                    <!-- Category Selection -->
+                    <div class="form-group">
+                        <label asp-for="CategoryID" class="form-label required">કેટેગરી પસંદ કરો</label>
+                        <div class="category-selection">
+                            @if (Model.Categories != null)
+                            {
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <div class="category-card @(Model.CategoryID == category.CategoryID ? "selected" : "")" 
+                                         onclick="selectCategory(@category.CategoryID)">
+                                        <div class="category-icon">
+                                            <i class="@category.CategoryIcon"></i>
+                                        </div>
+                                        <h6>@category.CategoryNameGuj</h6>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <input type="hidden" asp-for="CategoryID" id="selectedCategoryId" />
+                        <span asp-validation-for="CategoryID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Subcategory -->
+                    <div class="form-group" id="subcategoryGroup" style="display: none;">
+                        <label asp-for="SubCategoryID" class="form-label">સબ-કેટેગરી</label>
+                        <select asp-for="SubCategoryID" class="form-control" id="subcategorySelect">
+                            <option value="">સબ-કેટેગરી પસંદ કરો</option>
+                        </select>
+                        <span asp-validation-for="SubCategoryID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="form-group">
+                        <label asp-for="Title" class="form-label required">જાહેરાતનું શીર્ષક</label>
+                        <input asp-for="Title" class="form-control" placeholder="જેમ કે: John Deere 5050D ટ્રેક્ટર વેચાણ માટે" 
+                               maxlength="100" onkeyup="updateCharCount('Title', 100)">
+                        <div class="char-count">
+                            <span id="Title-count">0</span>/100
+                        </div>
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <!-- Quick Tips -->
+                    <div class="tips-section">
+                        <h4><i class="fas fa-lightbulb"></i>ટિપ્સ:</h4>
+                        <ul>
+                            <li>સ્પષ્ટ અને આકર્ષક શીર્ષક લખો</li>
+                            <li>બ્રાંડ નામ અને મોડલ ઉમેરો</li>
+                            <li>મુખ્ય વિશેષતાઓ ઉલ્લેખ કરો</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="step-navigation">
+                    <button type="button" class="btn btn-primary next-btn" onclick="nextStep()">
+                        આગળ <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Photos and Details -->
+            <div class="form-step" id="step-2">
+                <div class="step-content">
+                    <h2>ફોટો અને વિગતવાર માહિતી</h2>
+                    
+                    <!-- Image Upload -->
+                    <div class="form-group">
+                        <label class="form-label required">ફોટો ઉમેરો (ઓછામાં ઓછા 1)</label>
+                        <div class="image-upload-area">
+                            <div class="upload-zone" onclick="document.getElementById('imageInput').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>ફોટો ઉમેરવા માટે ક્લિક કરો અથવા ખેંચો</p>
+                                <small>JPG, PNG, WEBP (મહત્તમ 10MB)</small>
+                            </div>
+                            <input type="file" id="imageInput" name="Images" multiple accept="image/*" 
+                                   style="display: none;" onchange="handleImageUpload(this)">
+                        </div>
+                        
+                        <div class="uploaded-images" id="uploadedImages"></div>
+                        <span class="text-danger" id="imageError"></span>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label asp-for="Description" class="form-label required">વિગતવાર વર્ણન</label>
+                        <textarea asp-for="Description" class="form-control" rows="6" 
+                                  placeholder="તમારી વસ્તુ વિશે વિગતવાર માહિતી આપો..."
+                                  maxlength="2000" onkeyup="updateCharCount('Description', 2000)"></textarea>
+                        <div class="char-count">
+                            <span id="Description-count">0</span>/2000
+                        </div>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <!-- Condition -->
+                    <div class="form-group">
+                        <label asp-for="Condition" class="form-label">હાલત</label>
+                        <div class="condition-options">
+                            <label class="condition-option">
+                                <input type="radio" asp-for="Condition" value="નવું" />
+                                <span class="condition-card">
+                                    <i class="fas fa-star"></i>
+                                    <strong>નવું</strong>
+                                    <small>બિલકુલ નવું</small>
+                                </span>
+                            </label>
+                            <label class="condition-option">
+                                <input type="radio" asp-for="Condition" value="સારું" />
+                                <span class="condition-card">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <strong>સારું</strong>
+                                    <small>સારી હાલત</small>
+                                </span>
+                            </label>
+                            <label class="condition-option">
+                                <input type="radio" asp-for="Condition" value="સરેરાશ" />
+                                <span class="condition-card">
+                                    <i class="fas fa-minus"></i>
+                                    <strong>સરેરાશ</strong>
+                                    <small>સામાન્ય હાલત</small>
+                                </span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="Condition" class="text-danger"></span>
+                    </div>
+
+                    <!-- Brand and Model -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Brand" class="form-label">બ્રાંડ</label>
+                                <input asp-for="Brand" class="form-control" placeholder="જેમ કે: Mahindra, John Deere">
+                                <span asp-validation-for="Brand" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Model" class="form-label">મોડલ</label>
+                                <input asp-for="Model" class="form-control" placeholder="જેમ કે: 575 DI, 5050D">
+                                <span asp-validation-for="Model" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Year -->
+                    <div class="form-group">
+                        <label asp-for="Year" class="form-label">વર્ષ</label>
+                        <select asp-for="Year" class="form-control">
+                            <option value="">વર્ષ પસંદ કરો</option>
+                            @for (int year = DateTime.Now.Year; year >= 1990; year--)
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Year" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button type="button" class="btn btn-secondary prev-btn" onclick="prevStep()">
+                        <i class="fas fa-arrow-left"></i> પાછળ
+                    </button>
+                    <button type="button" class="btn btn-primary next-btn" onclick="nextStep()">
+                        આગળ <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Location and Price -->
+            <div class="form-step" id="step-3">
+                <div class="step-content">
+                    <h2>સ્થાન અને કિંમત</h2>
+                    
+                    <!-- Location -->
+                    <div class="location-section">
+                        <h4><i class="fas fa-map-marker-alt"></i>સ્થાન</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="StateID" class="form-label required">રાજ્ય</label>
+                                    <select asp-for="StateID" class="form-control" id="stateSelect" onchange="loadDistricts()">
+                                        <option value="">રાજ્ય પસંદ કરો</option>
+                                        @if (Model.States != null)
+                                        {
+                                            @foreach (var state in Model.States)
+                                            {
+                                                <option value="@state.StateID">@state.StateName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="StateID" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="DistrictID" class="form-label required">જિલ્લો</label>
+                                    <select asp-for="DistrictID" class="form-control" id="districtSelect" onchange="loadTalukas()" disabled>
+                                        <option value="">પહેલા રાજ્ય પસંદ કરો</option>
+                                    </select>
+                                    <span asp-validation-for="DistrictID" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="TalukaID" class="form-label">તાલુકો</label>
+                                    <select asp-for="TalukaID" class="form-control" id="talukaSelect" onchange="loadVillages()" disabled>
+                                        <option value="">પહેલા જિલ્લો પસંદ કરો</option>
+                                    </select>
+                                    <span asp-validation-for="TalukaID" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="VillageID" class="form-label">ગામ</label>
+                                    <select asp-for="VillageID" class="form-control" id="villageSelect" disabled>
+                                        <option value="">પહેલા તાલુકો પસંદ કરો</option>
+                                    </select>
+                                    <span asp-validation-for="VillageID" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Address" class="form-label">સરનામું (વૈકલ્પિક)</label>
+                            <textarea asp-for="Address" class="form-control" rows="3" 
+                                      placeholder="વિગતવાર સરનામું..."></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Price -->
+                    <div class="price-section">
+                        <h4><i class="fas fa-rupee-sign"></i>કિંમત</h4>
+                        
+                        <div class="form-group">
+                            <label asp-for="Price" class="form-label">કિંમત (રૂપિયા)</label>
+                            <div class="price-input-group">
+                                <span class="currency-symbol">₹</span>
+                                <input asp-for="Price" type="number" class="form-control" 
+                                       placeholder="0" min="0" step="1000" onkeyup="formatPrice(this)">
+                            </div>
+                            <div class="price-suggestions">
+                                <button type="button" class="price-suggestion" onclick="setPrice(50000)">₹50,000</button>
+                                <button type="button" class="price-suggestion" onclick="setPrice(100000)">₹1,00,000</button>
+                                <button type="button" class="price-suggestion" onclick="setPrice(500000)">₹5,00,000</button>
+                                <button type="button" class="price-suggestion" onclick="setPrice(1000000)">₹10,00,000</button>
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Urgent Checkbox -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" asp-for="IsUrgent" />
+                            <span class="checkmark"></span>
+                            <strong>તાત્કાલિક જાહેરાત</strong>
+                            <small>તમારી જાહેરાત ટોપ પર દેખાશે</small>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button type="button" class="btn btn-secondary prev-btn" onclick="prevStep()">
+                        <i class="fas fa-arrow-left"></i> પાછળ
+                    </button>
+                    <button type="button" class="btn btn-primary next-btn" onclick="nextStep()">
+                        આગળ <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Preview -->
+            <div class="form-step" id="step-4">
+                <div class="step-content">
+                    <h2>પ્રિવ્યૂ</h2>
+                    
+                    <div class="preview-card">
+                        <div class="preview-header">
+                            <h3>તમારી જાહેરાત આ રીતે દેખાશે:</h3>
+                        </div>
+                        
+                        <div class="post-preview" id="postPreview">
+                            <!-- Preview content will be populated by JavaScript -->
+                        </div>
+                        
+                        <div class="preview-tips">
+                            <h4><i class="fas fa-info-circle"></i>અગત્યની વાત:</h4>
+                            <ul>
+                                <li>જાહેરાત પ્રકાશિત થયા પછી એડમિન દ્વારા તપાસવામાં આવશે</li>
+                                <li>મંજૂરી પછી તે બધાને દેખાશે</li>
+                                <li>ખોટી માહિતી આપવી નહીં</li>
+                                <li>સ્પષ્ટ ફોટો અપલોડ કરો</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-navigation">
+                    <button type="button" class="btn btn-secondary prev-btn" onclick="prevStep()">
+                        <i class="fas fa-arrow-left"></i> પાછળ
+                    </button>
+                    <button type="submit" class="btn btn-success submit-btn">
+                        <i class="fas fa-paper-plane"></i> જાહેરાત પ્રકાશિત કરો
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">લોડ થઈ રહ્યું છે...</span>
+                </div>
+                <p class="mt-3">જાહેરાત બનાવી રહ્યા છીએ...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentStep = 1;
+        let uploadedImages = [];
+        let selectedCategoryId = @(Model.CategoryID ?? 0);
+
+        // Step Navigation
+        function nextStep() {
+            if (validateCurrentStep()) {
+                if (currentStep < 4) {
+                    currentStep++;
+                    updateStepDisplay();
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+
+        function updateStepDisplay() {
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.toggle('active', index + 1 === currentStep);
+                step.classList.toggle('completed', index + 1 < currentStep);
+            });
+
+            // Update form steps
+            document.querySelectorAll('.form-step').forEach((step, index) => {
+                step.classList.toggle('active', index + 1 === currentStep);
+            });
+
+            // Update preview if on step 4
+            if (currentStep === 4) {
+                updatePreview();
+            }
+        }
+
+        function validateCurrentStep() {
+            let isValid = true;
+            const currentStepElement = document.getElementById(`step-${currentStep}`);
+            
+            switch (currentStep) {
+                case 1:
+                    if (!selectedCategoryId) {
+                        showError('કેટેગરી પસંદ કરવી આવશ્યક છે');
+                        isValid = false;
+                    }
+                    if (!document.getElementById('Title').value.trim()) {
+                        showError('શીર્ષક લખવું આવશ્યક છે');
+                        isValid = false;
+                    }
+                    break;
+                case 2:
+                    if (uploadedImages.length === 0) {
+                        showError('ઓછામાં ઓછો 1 ફોટો ઉમેરવો આવશ્યક છે');
+                        isValid = false;
+                    }
+                    if (!document.getElementById('Description').value.trim()) {
+                        showError('વર્ણન લખવું આવશ્યક છે');
+                        isValid = false;
+                    }
+                    break;
+                case 3:
+                    if (!document.getElementById('stateSelect').value) {
+                        showError('રાજ્ય પસંદ કરવું આવશ્યક છે');
+                        isValid = false;
+                    }
+                    if (!document.getElementById('districtSelect').value) {
+                        showError('જિલ્લો પસંદ કરવો આવશ્યક છે');
+                        isValid = false;
+                    }
+                    break;
+            }
+            
+            return isValid;
+        }
+
+        // Category Selection
+        function selectCategory(categoryId) {
+            selectedCategoryId = categoryId;
+            document.getElementById('selectedCategoryId').value = categoryId;
+            
+            // Update UI
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.category-card').classList.add('selected');
+            
+            // Load subcategories
+            loadSubCategories(categoryId);
+        }
+
+        async function loadSubCategories(categoryId) {
+            try {
+                const response = await fetch(`/User/GetSubCategories?categoryId=${categoryId}`);
+                const subCategories = await response.json();
+                
+                const select = document.getElementById('subcategorySelect');
+                select.innerHTML = '<option value="">સબ-કેટેગરી પસંદ કરો</option>';
+                
+                subCategories.forEach(sub => {
+                    select.innerHTML += `<option value="${sub.subCategoryID}">${sub.subCategoryNameGuj}</option>`;
+                });
+                
+                document.getElementById('subcategoryGroup').style.display = subCategories.length > 0 ? 'block' : 'none';
+            } catch (error) {
+                console.error('Error loading subcategories:', error);
+            }
+        }
+
+        // Image Upload
+        function handleImageUpload(input) {
+            const files = Array.from(input.files);
+            
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    if (file.size <= 10 * 1024 * 1024) { // 10MB limit
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            addImageToPreview(e.target.result, file.name);
+                        };
+                        reader.readAsDataURL(file);
+                        uploadedImages.push(file);
+                    } else {
+                        showError('ફાઇલનું કદ 10MB કરતાં ઓછું હોવું જોઈએ');
+                    }
+                } else {
+                    showError('માત્ર ઇમેજ ફાઇલો પસંદ કરો');
+                }
+            });
+        }
+
+        function addImageToPreview(src, name) {
+            const container = document.getElementById('uploadedImages');
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'uploaded-image';
+            imageDiv.innerHTML = `
+                <img src="${src}" alt="${name}">
+                <button type="button" class="remove-image" onclick="removeImage(this, '${name}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(imageDiv);
+        }
+
+        function removeImage(button, fileName) {
+            button.parentElement.remove();
+            uploadedImages = uploadedImages.filter(file => file.name !== fileName);
+        }
+
+        // Location Dropdowns
+        async function loadDistricts() {
+            const stateId = document.getElementById('stateSelect').value;
+            const districtSelect = document.getElementById('districtSelect');
+            
+            if (!stateId) {
+                districtSelect.innerHTML = '<option value="">પહેલા રાજ્ય પસંદ કરો</option>';
+                districtSelect.disabled = true;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/User/GetDistricts?stateId=${stateId}`);
+                const districts = await response.json();
+                
+                districtSelect.innerHTML = '<option value="">જિલ્લો પસંદ કરો</option>';
+                districts.forEach(district => {
+                    districtSelect.innerHTML += `<option value="${district.districtID}">${district.districtName}</option>`;
+                });
+                
+                districtSelect.disabled = false;
+            } catch (error) {
+                console.error('Error loading districts:', error);
+            }
+        }
+
+        async function loadTalukas() {
+            const districtId = document.getElementById('districtSelect').value;
+            const talukaSelect = document.getElementById('talukaSelect');
+            
+            if (!districtId) {
+                talukaSelect.innerHTML = '<option value="">પહેલા જિલ્લો પસંદ કરો</option>';
+                talukaSelect.disabled = true;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/User/GetTalukas?districtId=${districtId}`);
+                const talukas = await response.json();
+                
+                talukaSelect.innerHTML = '<option value="">તાલુકો પસંદ કરો</option>';
+                talukas.forEach(taluka => {
+                    talukaSelect.innerHTML += `<option value="${taluka.talukaID}">${taluka.talukaName}</option>`;
+                });
+                
+                talukaSelect.disabled = false;
+            } catch (error) {
+                console.error('Error loading talukas:', error);
+            }
+        }
+
+        async function loadVillages() {
+            const talukaId = document.getElementById('talukaSelect').value;
+            const villageSelect = document.getElementById('villageSelect');
+            
+            if (!talukaId) {
+                villageSelect.innerHTML = '<option value="">પહેલા તાલુકો પસંદ કરો</option>';
+                villageSelect.disabled = true;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/User/GetVillages?talukaId=${talukaId}`);
+                const villages = await response.json();
+                
+                villageSelect.innerHTML = '<option value="">ગામ પસંદ કરો</option>';
+                villages.forEach(village => {
+                    villageSelect.innerHTML += `<option value="${village.villageID}">${village.villageName}</option>`;
+                });
+                
+                villageSelect.disabled = false;
+            } catch (error) {
+                console.error('Error loading villages:', error);
+            }
+        }
+
+        // Price Functions
+        function formatPrice(input) {
+            let value = input.value.replace(/[^\d]/g, '');
+            if (value) {
+                input.value = parseInt(value).toLocaleString('en-IN');
+            }
+        }
+
+        function setPrice(amount) {
+            const priceInput = document.querySelector('input[name="Price"]');
+            priceInput.value = amount;
+            formatPrice(priceInput);
+        }
+
+        // Character Count
+        function updateCharCount(fieldName, maxLength) {
+            const field = document.getElementById(fieldName);
+            const counter = document.getElementById(`${fieldName}-count`);
+            counter.textContent = field.value.length;
+            
+            if (field.value.length > maxLength * 0.9) {
+                counter.style.color = '#dc3545';
+            } else {
+                counter.style.color = '#6c757d';
+            }
+        }
+
+        // Preview Update
+        function updatePreview() {
+            const title = document.getElementById('Title').value;
+            const description = document.getElementById('Description').value;
+            const price = document.querySelector('input[name="Price"]').value;
+            const condition = document.querySelector('input[name="Condition"]:checked')?.value;
+            const brand = document.querySelector('input[name="Brand"]').value;
+            const model = document.querySelector('input[name="Model"]').value;
+            const year = document.getElementById('Year').value;
+            const isUrgent = document.querySelector('input[name="IsUrgent"]').checked;
+            
+            // Get location text
+            const stateText = document.querySelector('#stateSelect option:checked')?.textContent;
+            const districtText = document.querySelector('#districtSelect option:checked')?.textContent;
+            const talukaText = document.querySelector('#talukaSelect option:checked')?.textContent;
+            const location = [talukaText, districtText, stateText].filter(Boolean).join(', ');
+            
+            const previewHtml = `
+                <div class="preview-post-card">
+                    <div class="preview-images">
+                        ${uploadedImages.length > 0 ? 
+                            `<div class="preview-image-grid">
+                                ${uploadedImages.slice(0, 4).map((file, index) => 
+                                    `<img src="${URL.createObjectURL(file)}" alt="Preview ${index + 1}">`
+                                ).join('')}
+                                ${uploadedImages.length > 4 ? `<div class="more-images-overlay">+${uploadedImages.length - 4}</div>` : ''}
+                            </div>` : 
+                            '<div class="no-preview-image"><i class="fas fa-image"></i><span>કોઈ ફોટો નથી</span></div>'
+                        }
+                    </div>
+                    
+                    <div class="preview-content">
+                        <div class="preview-header">
+                            <div class="preview-tags">
+                                ${isUrgent ? '<span class="urgent-tag">તાત્કાલિક</span>' : ''}
+                                ${condition ? `<span class="condition-tag">${condition}</span>` : ''}
+                            </div>
+                        </div>
+                        
+                        <h3 class="preview-title">${title || 'શીર્ષક લખો'}</h3>
+                        
+                        ${price ? `<div class="preview-price">₹${price}</div>` : ''}
+                        
+                        <p class="preview-description">${description || 'વર્ણન લખો'}</p>
+                        
+                        <div class="preview-details">
+                            ${brand ? `<span><strong>બ્રાંડ:</strong> ${brand}</span>` : ''}
+                            ${model ? `<span><strong>મોડલ:</strong> ${model}</span>` : ''}
+                            ${year ? `<span><strong>વર્ષ:</strong> ${year}</span>` : ''}
+                        </div>
+                        
+                        <div class="preview-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${location || 'સ્થાન પસંદ કરો'}
+                        </div>
+                        
+                        <div class="preview-actions">
+                            <button class="preview-action-btn">
+                                <i class="far fa-heart"></i> 0
+                            </button>
+                            <button class="preview-action-btn">
+                                <i class="far fa-comment"></i> 0
+                            </button>
+                            <button class="preview-action-btn">
+                                <i class="far fa-bookmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('postPreview').innerHTML = previewHtml;
+        }
+
+        // Form Submission
+        document.getElementById('createPostForm').addEventListener('submit', function(e) {
+            if (!validateCurrentStep()) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Show loading modal
+            const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+            loadingModal.show();
+        });
+
+        // Utility Functions
+        function showError(message) {
+            // Create a toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification error';
+            toast.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification success';
+            toast.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial character counts
+            updateCharCount('Title', 100);
+            updateCharCount('Description', 2000);
+            
+            // Load states if not already loaded
+            if (document.getElementById('stateSelect').children.length <= 1) {
+                loadStates();
+            }
+            
+            // Auto-save to localStorage every 30 seconds
+            setInterval(autoSave, 30000);
+            
+            // Load auto-saved data if exists
+            loadAutoSaved();
+        });
+
+        async function loadStates() {
+            // Implementation for loading states if not server-side rendered
+        }
+
+        function autoSave() {
+            const formData = {
+                categoryId: selectedCategoryId,
+                title: document.getElementById('Title').value,
+                description: document.getElementById('Description').value,
+                price: document.querySelector('input[name="Price"]').value,
+                condition: document.querySelector('input[name="Condition"]:checked')?.value,
+                brand: document.querySelector('input[name="Brand"]').value,
+                model: document.querySelector('input[name="Model"]').value,
+                year: document.getElementById('Year').value,
+                stateId: document.getElementById('stateSelect').value,
+                districtId: document.getElementById('districtSelect').value,
+                talukaId: document.getElementById('talukaSelect').value,
+                villageId: document.getElementById('villageSelect').value,
+                address: document.querySelector('textarea[name="Address"]').value,
+                isUrgent: document.querySelector('input[name="IsUrgent"]').checked,
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem('createPostAutoSave', JSON.stringify(formData));
+        }
+
+        function loadAutoSaved() {
+            const saved = localStorage.getItem('createPostAutoSave');
+            if (saved) {
+                const data = JSON.parse(saved);
+                
+                // Check if save is less than 1 hour old
+                if (Date.now() - data.timestamp < 3600000) {
+                    if (confirm('તમારો અધૂરો ફોર્મ મળ્યો છે. શું તમે તેને પુનઃસ્થાપિત કરવા માંગો છો?')) {
+                        // Restore form data
+                        if (data.categoryId) selectCategory(data.categoryId);
+                        if (data.title) document.getElementById('Title').value = data.title;
+                        if (data.description) document.getElementById('Description').value = data.description;
+                        // ... restore other fields
+                        
+                        showSuccess('અગાઉનો ડેટા પુનઃસ્થાપિત કર્યો');
+                    }
+                } else {
+                    // Remove old auto-save
+                    localStorage.removeItem('createPostAutoSave');
+                }
+            }
+        }
+
+        // Clear auto-save on successful submission
+        window.addEventListener('beforeunload', function() {
+            if (document.getElementById('createPostForm').checkValidity()) {
+                localStorage.removeItem('createPostAutoSave');
+            }
+        });
+
+        // Drag and Drop for images
+        const uploadZone = document.querySelector('.upload-zone');
+        
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            const imageInput = document.getElementById('imageInput');
+            
+            // Create new FileList
+            const dt = new DataTransfer();
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    dt.items.add(file);
+                }
+            });
+            
+            imageInput.files = dt.files;
+            handleImageUpload(imageInput);
+        });
+    </script>
+}

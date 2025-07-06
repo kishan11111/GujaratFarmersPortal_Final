@@ -719,7 +719,7 @@
     function bulkActivate() {
         const selectedIds = getSelectedUserIds();
         if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને સક્રિય કરવા માંગો છો?`)) {
-            fetch('/Admin/Users/BulkActivate', {
+            fetch('/Admin/Users/Activate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(selectedIds)
@@ -730,7 +730,7 @@
     function bulkDeactivate() {
         const selectedIds = getSelectedUserIds();
         if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને નિષ્ક્રિય કરવા માંગો છો?`)) {
-            fetch('/Admin/Users/BulkDeactivate', {
+            fetch('/Admin/Users/Deactivate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(selectedIds)
@@ -741,7 +741,7 @@
     function bulkBan() {
         const selectedIds = getSelectedUserIds();
         if (selectedIds.length > 0 && confirm(`શું તમે ${selectedIds.length} વપરાશકર્તાઓને બ્લોક કરવા માંગો છો?`)) {
-            fetch('/Admin/Users/BulkBan', {
+            fetch('/Admin/Users/Ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(selectedIds)

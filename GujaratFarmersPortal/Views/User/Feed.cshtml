@@ -1,0 +1,722 @@
+﻿@model UserFeedViewModel
+@{
+    ViewData["Title"] = "ફીડ";
+    ViewBag.ActivePage = "Feed";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-feed.css" asp-append-version="true" />
+}
+
+<div class="feed-container">
+    <!-- Stories Section -->
+    <div class="stories-section">
+        <div class="stories-scroll">
+            <div class="story-item add-story">
+                <div class="story-circle">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <span>તમારી વાર્તા</span>
+            </div>
+            
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="story-item">
+                    <div class="story-circle">
+                        <img src="/images/default-avatar.png" alt="Story">
+                    </div>
+                    <span>યુઝર @(i + 1)</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-tabs">
+            <button class="filter-tab @(string.IsNullOrEmpty(ViewBag.SelectedCategory?.ToString()) ? "active" : "")" 
+                    onclick="filterByCategory(null)">
+                બધું
+            </button>
+            @if (Model.Categories != null)
+            {
+                @foreach (var category in Model.Categories.Take(6))
+                {
+                    <button class="filter-tab @(ViewBag.SelectedCategory?.ToString() == category.CategoryID.ToString() ? "active" : "")" 
+                            onclick="filterByCategory(@category.CategoryID)">
+                        <i class="@category.CategoryIcon"></i>
+                        @category.CategoryNameGuj
+                    </button>
+                }
+            }
+            <button class="filter-tab filter-more" onclick="showMoreCategories()">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+        
+        <div class="sort-options">
+            <select class="sort-select" onchange="changeSortOrder(this.value)">
+              @*   <option value="recent" @(ViewBag.SortBy == "recent" ? "selected" : "")>તાજેતરની</option>
+                <option value="popular" @(ViewBag.SortBy == "popular" ? "selected" : "")>લોકપ્રિય</option>
+                <option value="price_low" @(ViewBag.SortBy == "price_low" ? "selected" : "")>ઓછી કિંમત</option>
+                <option value="price_high" @(ViewBag.SortBy == "price_high" ? "selected" : "")>વધુ કિંમત</option>
+                <option value="nearby" @(ViewBag.SortBy == "nearby" ? "selected" : "")>નજીકની</option> *@
+                <option value="recent">તાજેતરની</option>
+                <option value="popular">લોકપ્રિય</option>
+                <option value="price_low">ઓછી કિંમત</option>
+                <option value="price_high">વધુ કિંમત</option>
+                <option value="nearby">નજીકની</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Featured Posts Carousel -->
+    @if (Model.FeaturedPosts != null && Model.FeaturedPosts.Any())
+    {
+        <div class="featured-section">
+            <h3 class="section-title">
+                <i class="fas fa-star"></i>ફીચર્ડ જાહેરાતો
+            </h3>
+            <div class="featured-carousel">
+                @foreach (var post in Model.FeaturedPosts)
+                {
+                    <div class="featured-card" onclick="viewPost(@post.PostID)">
+                        <div class="featured-image">
+                            <img src="@(post.MainImage ?? "/images/no-image.jpg")" alt="@post.Title">
+                            <div class="featured-badge">ફીચર્ડ</div>
+                        </div>
+                        <div class="featured-content">
+                            <h4>@post.Title</h4>
+                            <p class="featured-price">₹@post.Price?.ToString("N0")</p>
+                            <p class="featured-location">@post.Location</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Urgent Posts -->
+    @if (Model.UrgentPosts != null && Model.UrgentPosts.Any())
+    {
+        <div class="urgent-section">
+            <h3 class="section-title">
+                <i class="fas fa-exclamation-triangle"></i>તાત્કાલિક જાહેરાતો
+            </h3>
+            <div class="urgent-posts">
+                @foreach (var post in Model.UrgentPosts.Take(3))
+                {
+                    <div class="urgent-card" onclick="viewPost(@post.PostID)">
+                        <img src="@(post.MainImage ?? "/images/no-image.jpg")" alt="@post.Title">
+                        <div class="urgent-content">
+                            <h5>@post.Title</h5>
+                            <p>₹@post.Price?.ToString("N0")</p>
+                        </div>
+                        <div class="urgent-badge">તાત્કાલિક</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Main Feed -->
+    <div class="main-feed">
+        @if (Model.Posts?.Items != null && Model.Posts.Items.Any())
+        {
+            @foreach (var post in Model.Posts.Items)
+            {
+                <article class="post-card" data-post-id="@post.PostID">
+                    <!-- Post Header -->
+                    <div class="post-header">
+                        <div class="user-info">
+                            <img src="@(post.UserProfileImage ?? "/images/default-avatar.png")" 
+                                 alt="@post.FullName" class="user-avatar">
+                            <div class="user-details">
+                                <h4 class="username">@post.FullName</h4>
+                                <p class="post-location">
+                                    <i class="fas fa-map-marker-alt"></i>@post.Location
+                                </p>
+                                <p class="post-time">@post.TimeAgo</p>
+                            </div>
+                        </div>
+                        <div class="post-menu">
+                            <button class="menu-btn" onclick="togglePostMenu(@post.PostID)">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="post-menu-dropdown" id="menu-@post.PostID">
+                                <button onclick="sharePost(@post.PostID)">
+                                    <i class="fas fa-share"></i>શેર કરો
+                                </button>
+                                <button onclick="reportPost(@post.PostID)">
+                                    <i class="fas fa-flag"></i>રિપોર્ટ કરો
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post Images -->
+                    <div class="post-images">
+                        @if (post.Images != null && post.Images.Any())
+                        {
+                            @if (post.Images.Count == 1)
+                            {
+                                <img src="@post.Images.First()" alt="@post.Title" class="single-image" 
+                                     onclick="openImageGallery(@post.PostID, 0)">
+                            }
+                            else
+                            {
+                                <div class="image-grid grid-@Math.Min(post.Images.Count, 4)">
+                                    @for (int i = 0; i < Math.Min(post.Images.Count, 4); i++)
+                                    {
+                                        <div class="image-item @(i == 3 && post.Images.Count > 4 ? "more-images" : "")" 
+                                             onclick="openImageGallery(@post.PostID, @i)">
+                                            <img src="@post.Images[i]" alt="@post.Title">
+                                            @if (i == 3 && post.Images.Count > 4)
+                                            {
+                                                <div class="more-overlay">
+                                                    <span>+@(post.Images.Count - 4)</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                                <span>કોઈ ફોટો નથી</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Post Actions -->
+                    <div class="post-actions">
+                        <div class="action-buttons">
+                            <button class="action-btn like-btn @(post.IsLiked ? "liked" : "")" 
+                                    onclick="toggleLike(@post.PostID)">
+                                <i class="@(post.IsLiked ? "fas" : "far") fa-heart"></i>
+                                <span class="like-count">@post.LikeCount</span>
+                            </button>
+                            
+                            <button class="action-btn comment-btn" 
+                                    onclick="toggleComments(@post.PostID)">
+                                <i class="far fa-comment"></i>
+                                <span class="comment-count">@post.CommentCount</span>
+                            </button>
+                            
+                            <button class="action-btn share-btn" 
+                                    onclick="sharePost(@post.PostID)">
+                                <i class="far fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        
+                        <button class="action-btn favorite-btn @(post.IsFavorite ? "favorited" : "")" 
+                                onclick="toggleFavorite(@post.PostID)">
+                            <i class="@(post.IsFavorite ? "fas" : "far") fa-bookmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Post Content -->
+                    <div class="post-content">
+                        <div class="post-category">
+                            <span class="category-tag">@post.CategoryNameGuj</span>
+                            @if (post.IsUrgent)
+                            {
+                                <span class="urgent-tag">તાત્કાલિક</span>
+                            }
+                            @if (post.IsFeatured)
+                            {
+                                <span class="featured-tag">ફીચર્ડ</span>
+                            }
+                        </div>
+                        
+                        <h3 class="post-title" onclick="viewPost(@post.PostID)">@post.Title</h3>
+                        
+                        @if (post.Price.HasValue)
+                        {
+                            <div class="post-price">
+                                <i class="fas fa-rupee-sign"></i>
+                                <span class="price-amount">@post.Price?.ToString("N0")</span>
+                            </div>
+                        }
+                        
+                        <p class="post-description">
+                            @{
+                                var description = post.Description ?? "";
+                                var shortDescription = description.Length > 120 ? description.Substring(0, 120) + "..." : description;
+                            }
+                            @shortDescription
+                            @if (description.Length > 120)
+                            {
+                                <button class="read-more-btn" onclick="viewPost(@post.PostID)">વધુ વાંચો</button>
+                            }
+                        </p>
+
+                        <div class="post-stats">
+                            <span class="views">
+                                <i class="fas fa-eye"></i>@post.ViewCount વ્યૂઝ
+                            </span>
+                            @if (post.LikeCount > 0)
+                            {
+                                <span class="likes-detail" onclick="showLikes(@post.PostID)">
+                                    @post.LikeCount લોકોને આ ગમ્યું
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div class="comments-section" id="comments-@post.PostID" style="display: none;">
+                        <div class="comments-container">
+                            <div class="loading-comments">
+                                <i class="fas fa-spinner fa-spin"></i>કમેન્ટ્સ લોડ થઈ રહ્યા છે...
+                            </div>
+                        </div>
+                        
+                        <div class="add-comment">
+                            <img src="@(ViewBag.UserProfileImage ?? "/images/default-avatar.png")" 
+                                 alt="You" class="comment-avatar">
+                            <div class="comment-input-group">
+                                <input type="text" class="comment-input" 
+                                       placeholder="કમેન્ટ લખો..." 
+                                       onkeypress="handleCommentKeyPress(event, @post.PostID)">
+                                <button class="send-comment-btn" onclick="addComment(@post.PostID)">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            }
+
+            <!-- Load More Button -->
+            @if (Model.Posts.HasNext)
+            {
+                <div class="load-more-container">
+                    <button class="load-more-btn" onclick="loadMorePosts()" id="loadMoreBtn">
+                        <i class="fas fa-plus"></i>વધુ જાહેરાતો લોડ કરો
+                    </button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-feed">
+                <i class="fas fa-inbox"></i>
+                <h3>કોઈ જાહેરાતો મળી નથી</h3>
+                <p>તમારા ફિલ્ટર અનુસાર કોઈ જાહેરાતો નથી</p>
+                <button class="btn btn-primary" onclick="clearFilters()">
+                    <i class="fas fa-refresh"></i>ફિલ્ટર ક્લિયર કરો
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Quick Action Button -->
+    <div class="quick-action-fab">
+        <button class="fab-main" onclick="createPost()">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Category Selection Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">કેટેગરી પસંદ કરો</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="category-grid">
+                    @if (Model.Categories != null)
+                    {
+                        @foreach (var category in Model.Categories)
+                        {
+                            <div class="category-item" onclick="selectCategory(@category.CategoryID)">
+                                <div class="category-icon">
+                                    <i class="@category.CategoryIcon"></i>
+                                </div>
+                                <h6>@category.CategoryNameGuj</h6>
+                                <span class="post-count">@category.PostCount જાહેરાતો</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Gallery Modal -->
+<div class="modal fade" id="imageGalleryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="gallery-container">
+                    <button class="gallery-nav prev" onclick="prevImage()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <img id="galleryImage" src="" alt="" class="gallery-image">
+                    <button class="gallery-nav next" onclick="nextImage()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="gallery-thumbnails" id="galleryThumbnails"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentPage = @Model.Posts.PageNumber;
+        let hasNextPage = @Model.Posts.HasNext.ToString().ToLower();
+        let currentCategoryId = @(ViewBag.SelectedCategory ?? "null");
+        let currentSortBy = '@ViewBag.SortBy';
+        let currentImages = [];
+        let currentImageIndex = 0;
+
+        // Filter Functions
+        function filterByCategory(categoryId) {
+            currentCategoryId = categoryId;
+            currentPage = 1;
+            updateUrl();
+            loadFeed();
+        }
+
+        function changeSortOrder(sortBy) {
+            currentSortBy = sortBy;
+            currentPage = 1;
+            updateUrl();
+            loadFeed();
+        }
+
+        function clearFilters() {
+            currentCategoryId = null;
+            currentSortBy = 'recent';
+            currentPage = 1;
+            updateUrl();
+            loadFeed();
+        }
+
+        function updateUrl() {
+            const params = new URLSearchParams();
+            if (currentCategoryId) params.set('categoryId', currentCategoryId);
+            if (currentSortBy !== 'recent') params.set('sortBy', currentSortBy);
+            if (currentPage > 1) params.set('page', currentPage);
+            
+            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.pushState({}, '', newUrl);
+        }
+
+        function loadFeed() {
+            // Show loading indicator
+            showLoading();
+            window.location.reload();
+        }
+
+        // Post Interaction Functions
+        async function toggleLike(postId) {
+            try {
+                const response = await fetch(`/User/Posts/${postId}/Like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    const likeBtn = document.querySelector(`[data-post-id="${postId}"] .like-btn`);
+                    const icon = likeBtn.querySelector('i');
+                    const count = likeBtn.querySelector('.like-count');
+                    
+                    if (result.isLiked) {
+                        likeBtn.classList.add('liked');
+                        icon.className = 'fas fa-heart';
+                        count.textContent = parseInt(count.textContent) + 1;
+                    } else {
+                        likeBtn.classList.remove('liked');
+                        icon.className = 'far fa-heart';
+                        count.textContent = parseInt(count.textContent) - 1;
+                    }
+                    
+                    showToast(result.message, 'success');
+                }
+            } catch (error) {
+                showToast('લાઈક કરવામાં ભૂલ આવી છે', 'error');
+            }
+        }
+
+        async function toggleFavorite(postId) {
+            try {
+                const response = await fetch(`/User/Posts/${postId}/Favorite`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    const favoriteBtn = document.querySelector(`[data-post-id="${postId}"] .favorite-btn`);
+                    const icon = favoriteBtn.querySelector('i');
+                    
+                    if (result.isFavorite) {
+                        favoriteBtn.classList.add('favorited');
+                        icon.className = 'fas fa-bookmark';
+                    } else {
+                        favoriteBtn.classList.remove('favorited');
+                        icon.className = 'far fa-bookmark';
+                    }
+                    
+                    showToast(result.message, 'success');
+                }
+            } catch (error) {
+                showToast('પસંદીદામાં ઉમેરવામાં ભૂલ આવી છે', 'error');
+            }
+        }
+
+        async function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+                await loadComments(postId);
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        }
+
+        async function loadComments(postId) {
+            try {
+                const response = await fetch(`/User/Posts/${postId}/Comments`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const container = document.querySelector(`#comments-${postId} .comments-container`);
+                    container.innerHTML = '';
+                    
+                    result.comments.items.forEach(comment => {
+                        const commentHtml = `
+                            <div class="comment-item">
+                                <img src="${comment.userProfileImage || '/images/default-avatar.png'}" 
+                                     alt="${comment.fullName}" class="comment-avatar">
+                                <div class="comment-content">
+                                    <h6 class="comment-author">${comment.fullName}</h6>
+                                    <p class="comment-text">${comment.commentText}</p>
+                                    <span class="comment-time">${comment.timeAgo}</span>
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += commentHtml;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading comments:', error);
+            }
+        }
+
+        async function addComment(postId) {
+            const input = document.querySelector(`#comments-${postId} .comment-input`);
+            const comment = input.value.trim();
+            
+            if (!comment) {
+                showToast('કમેન્ટ લખો', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/User/Posts/${postId}/Comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: `comment=${encodeURIComponent(comment)}`
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    input.value = '';
+                    await loadComments(postId);
+                    
+                    // Update comment count
+                    const commentBtn = document.querySelector(`[data-post-id="${postId}"] .comment-btn .comment-count`);
+                    commentBtn.textContent = parseInt(commentBtn.textContent) + 1;
+                    
+                    showToast('કમેન્ટ ઉમેરવામાં આવ્યો', 'success');
+                }
+            } catch (error) {
+                showToast('કમેન્ટ ઉમેરવામાં ભૂલ આવી છે', 'error');
+            }
+        }
+
+        function handleCommentKeyPress(event, postId) {
+            if (event.key === 'Enter') {
+                addComment(postId);
+            }
+        }
+
+        // Navigation Functions
+        function viewPost(postId) {
+            window.open(`/User/Posts/${postId}`, '_blank');
+        }
+
+        function createPost() {
+            window.location.href = '/User/Posts/Create';
+        }
+
+        // Image Gallery Functions
+        function openImageGallery(postId, startIndex) {
+            const post = document.querySelector(`[data-post-id="${postId}"]`);
+            const images = Array.from(post.querySelectorAll('.post-images img')).map(img => img.src);
+            
+            currentImages = images;
+            currentImageIndex = startIndex;
+            
+            showImageInGallery();
+            
+            const modal = new bootstrap.Modal(document.getElementById('imageGalleryModal'));
+            modal.show();
+        }
+
+        function showImageInGallery() {
+            const img = document.getElementById('galleryImage');
+            img.src = currentImages[currentImageIndex];
+            
+            // Update thumbnails
+            const thumbnailsContainer = document.getElementById('galleryThumbnails');
+            thumbnailsContainer.innerHTML = '';
+            
+            currentImages.forEach((imageSrc, index) => {
+                const thumb = document.createElement('img');
+                thumb.src = imageSrc;
+                thumb.className = `gallery-thumb ${index === currentImageIndex ? 'active' : ''}`;
+                thumb.onclick = () => {
+                    currentImageIndex = index;
+                    showImageInGallery();
+                };
+                thumbnailsContainer.appendChild(thumb);
+            });
+        }
+
+        function prevImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                showImageInGallery();
+            }
+        }
+
+        function nextImage() {
+            if (currentImageIndex < currentImages.length - 1) {
+                currentImageIndex++;
+                showImageInGallery();
+            }
+        }
+
+        // Load More Posts
+        async function loadMorePosts() {
+            if (!hasNextPage) return;
+            
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>લોડ થઈ રહ્યું છે...';
+            
+            try {
+                const params = new URLSearchParams();
+                if (currentCategoryId) params.set('categoryId', currentCategoryId);
+                if (currentSortBy !== 'recent') params.set('sortBy', currentSortBy);
+                params.set('page', currentPage + 1);
+                
+                const response = await fetch(`/User/Feed?${params.toString()}`);
+                // Implementation would append new posts to the feed
+                // For now, just reload the page with next page
+                window.location.href = `/User/Feed?${params.toString()}`;
+                
+            } catch (error) {
+                showToast('લોડ કરવામાં ભૂલ આવી છે', 'error');
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i>વધુ જાહેરાતો લોડ કરો';
+            }
+        }
+
+        // Utility Functions
+        function showToast(message, type = 'info') {
+            // Implementation for toast notifications
+            console.log(`${type}: ${message}`);
+        }
+
+        function showLoading() {
+            // Implementation for loading indicator
+        }
+
+        function showMoreCategories() {
+            const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
+            modal.show();
+        }
+
+        function selectCategory(categoryId) {
+            filterByCategory(categoryId);
+            bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+        }
+
+        function togglePostMenu(postId) {
+            const menu = document.getElementById(`menu-${postId}`);
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function sharePost(postId) {
+            // Implementation for sharing
+            showToast('શેર લિંક કૉપી કરવામાં આવી', 'success');
+        }
+
+        function reportPost(postId) {
+            // Implementation for reporting
+            showToast('રિપોર્ટ મોકલવામાં આવી', 'success');
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.post-menu')) {
+                document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+
+        // Add anti-forgery token to all AJAX requests
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (settings.type === 'POST') {
+                    xhr.setRequestHeader('RequestVerificationToken', 
+                        $('input[name="__RequestVerificationToken"]').val());
+                }
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-refresh every 5 minutes
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    // Check for new posts
+                    checkForNewPosts();
+                }
+            }, 300000);
+        });
+
+        async function checkForNewPosts() {
+            // Implementation for checking new posts
+            // Could show a notification bar if new posts are available
+        }
+    </script>
+}

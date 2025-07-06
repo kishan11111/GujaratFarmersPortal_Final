@@ -294,6 +294,8 @@ namespace GujaratFarmersPortal.Models
         public int TotalPages { get; set; }
         public bool HasPrevious { get; set; }
         public bool HasNext { get; set; }
+
+        public int CurrentPage { get; set; }
     }
 
     // Notification Models

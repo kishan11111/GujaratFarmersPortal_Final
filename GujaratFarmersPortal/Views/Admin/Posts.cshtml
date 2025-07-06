@@ -1,0 +1,454 @@
+﻿@model PagedResult<Post>
+@{
+    ViewData["Title"] = "પોસ્ટ મેનેજમેન્ટ";
+    ViewBag.ActivePage = "Posts";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin-post.css" asp-append-version="true" />
+}
+
+<div class="posts-management">
+    <div class="container-fluid">
+        
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3 mb-0" style="font-family: 'Noto Sans Gujarati', sans-serif;">
+                <i class="fas fa-list-alt me-2"></i>પોસ્ટ મેનેજમેન્ટ
+            </h2>
+            <div class="d-flex gap-2">
+                <a href="/Admin/Posts/Pending" class="btn btn-warning">
+                    <i class="fas fa-clock me-1"></i>મંજૂરી બાકી
+                </a>
+                <button class="btn btn-outline-secondary" onclick="refreshPosts()">
+                    <i class="fas fa-sync-alt me-1"></i>રીફ્રેશ
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number">@Model.TotalRecords</div>
+                <div class="stat-label">કુલ પોસ્ટ્સ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@(ViewBag.PendingCount ?? 0)</div>
+                <div class="stat-label">મંજૂરી બાકી</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@(ViewBag.ApprovedCount ?? 0)</div>
+                <div class="stat-label">મંજૂર થયેલ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@(ViewBag.FeaturedCount ?? 0)</div>
+                <div class="stat-label">ફીચર્ડ</div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filter-section">
+            <form method="get" action="/Admin/Posts" id="filterForm">
+                <div class="filters-row">
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="search" class="search-input" 
+                               placeholder="પોસ્ટ શોધો..." value="@ViewBag.SearchQuery">
+                    </div>
+                    
+                    <select name="filter" class="filter-select" onchange="this.form.submit()">
+                      @*   <option value="all" @Html.Raw(ViewBag.Filter?.ToString() == "all" ? "selected" : "")>બધી પોસ્ટ્સ</option>
+                        <option value="pending" @Html.Raw(ViewBag.Filter?.ToString() == "pending" ? "selected" : "")>મંજૂરી બાકી</option>
+                        <option value="approved" @Html.Raw(ViewBag.Filter?.ToString() == "approved" ? "selected" : "")>મંજૂર થયેલ</option>
+                        <option value="rejected" @Html.Raw(ViewBag.Filter?.ToString() == "rejected" ? "selected" : "")>રિજેક્ટ થયેલ</option>
+                        <option value="featured" @Html.Raw(ViewBag.Filter?.ToString() == "featured" ? "selected" : "")>ફીચર્ડ</option> *@
+                          <option value="all" >બધી પોસ્ટ્સ</option>
+                        <option value="pending">મંજૂરી બાકી</option>
+                        <option value="approved">મંજૂર થયેલ</option>
+                        <option value="rejected">રિજેક્ટ થયેલ</option>
+                        <option value="featured">ફીચર્ડ</option>
+                    </select>
+
+                    <select name="categoryId" class="filter-select" onchange="this.form.submit()">
+                        <option value="">બધી કેટેગરી</option>
+                        @if (ViewBag.Categories != null)
+                        {
+                            @foreach (var category in ViewBag.Categories as List<Category>)
+                            {
+                                <option value="@category.CategoryID">
+                                    @category.CategoryNameGuj
+                                </option>
+                            }
+                        }
+                    </select>
+
+                    <select name="status" class="filter-select" onchange="this.form.submit()">
+                        <option value="">બધી સ્થિતિ</option>
+                       @*  <option value="Active" @Html.Raw(ViewBag.Status?.ToString() == "Active" ? "selected" : "")>સક્રિય</option>
+                        <option value="Inactive" @Html.Raw(ViewBag.Status?.ToString() == "Inactive" ? "selected" : "")>નિષ્ક્રિય</option>
+                        <option value="Expired" @Html.Raw(ViewBag.Status?.ToString() == "Expired" ? "selected" : "")>સમાપ્ત</option> *@
+                         <option value="Active" >સક્રિય</option>
+                        <option value="Inactive">નિષ્ક્રિય</option>
+                        <option value="Expired" >સમાપ્ત</option>
+                    </select>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>ફિલ્ટર લગાવો
+                    </button>
+                    <a href="/Admin/Posts" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>ક્લિયર કરો
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bulk-actions" id="bulkActions">
+            <div class="d-flex justify-content-between align-items-center">
+                <span><span id="selectedCount">0</span> પોસ્ટ્સ પસંદ કરેલ</span>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="bulkApprove()">
+                        <i class="fas fa-check me-1"></i>બલ્ક મંજૂર
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="bulkReject()">
+                        <i class="fas fa-times me-1"></i>બલ્ક રિજેક્ટ
+                    </button>
+                    <button class="btn btn-info btn-sm" onclick="bulkFeature()">
+                        <i class="fas fa-star me-1"></i>બલ્ક ફીચર
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Posts List -->
+        @if (Model.Items != null && Model.Items.Any())
+        {
+            @foreach (var post in Model.Items)
+            {
+                <div class="post-card">
+                    <div class="post-header">
+                        <input type="checkbox" class="form-check-input me-3 post-checkbox" 
+                               value="@post.PostID" onchange="updateBulkActions()">
+                        
+                        @* Check for post image - adjust property name based on your Post model *@
+                        @if (!string.IsNullOrEmpty(post.PostImage))
+                        {
+                            <img src="@post.PostImage" alt="Post Image" class="post-image">
+                        }
+                        else if (!string.IsNullOrEmpty(post.PostImage))
+                        {
+                            <img src="@post.PostImage" alt="Post Image" class="post-image">
+                        }
+                        else
+                        {
+                            <div class="post-image d-flex align-items-center justify-content-center" 
+                                 style="background: #f8f9fa; color: #6c757d;">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        }
+                        
+                        <div class="post-info">
+                            <div class="post-title">@post.Title</div>
+                            <div class="post-meta">
+                                @* Adjust based on your Post model properties *@
+                                <span><i class="fas fa-user me-1"></i>@(post.FirstName ?? "અજ્ઞાત") @(post.LastName ?? "")</span>
+                                <span><i class="fas fa-calendar me-1"></i>@post.CreatedDate.ToString("dd/MM/yyyy")</span>
+                                <span><i class="fas fa-eye me-1"></i>@(post.ViewCount) વ્યૂઝ</span>
+                                <span class="status-badge status-@(post.IsActive ? "active" : "inactive")">@GetStatusText(post.IsActive)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                    type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/Admin/Posts/@post.PostID">
+                                    <i class="fas fa-eye me-2"></i>વિગતો જુઓ
+                                </a></li>
+                                <li><a class="dropdown-item" href="/Post/Details/@post.PostID" target="_blank">
+                                    <i class="fas fa-external-link-alt me-2"></i>ફ્રન્ટ એન્ડ જુઓ
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="post-body">
+                        <div class="post-description">
+                            @{
+                                string description = post.Description ?? "";
+                                string truncatedDescription = description.Length > 150 ? description.Substring(0, 150) + "..." : description;
+                            }
+                            @truncatedDescription
+                        </div>
+                        
+                        <div class="post-details">
+                            <div class="detail-item">
+                                <i class="fas fa-tag"></i>
+                                <span>@(post.CategoryName ?? "અનવર્ગીકૃત")</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>@(post.DistrictName ?? ""), @(post.StateName ?? "")</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-rupee-sign"></i>
+                                <span>₹@(post.Price?.ToString("N0") ?? "0")</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-heart"></i>
+                                <span>@(post.LikeCount) લાઈક્સ</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="post-actions">
+                        @* Adjust conditions based on your Post model status properties *@
+                        @if (!post.IsApproved && post.IsActive)
+                        {
+                            <form method="post" action="/Admin/Posts/Approve/@post.PostID" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn-action btn-approve" 
+                                        onclick="return confirm('શું તમે આ પોસ્ટને મંજૂર કરવા માંગો છો?')">
+                                    <i class="fas fa-check"></i>મંજૂર કરો
+                                </button>
+                            </form>
+                            
+                            <button class="btn-action btn-reject" 
+                                    onclick="showRejectModal(@post.PostID, '@Html.Raw(post.Title)')">
+                                <i class="fas fa-times"></i>રિજેક્ટ કરો
+                            </button>
+                        }
+                        
+                        @if (post.IsApproved && post.IsActive)
+                        {
+                            @if (!post.IsFeatured)
+                            {
+                                <form method="post" action="/Admin/Posts/Feature/@post.PostID" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-action btn-feature" 
+                                            onclick="return confirm('શું તમે આ પોસ્ટને ફીચર કરવા માંગો છો?')">
+                                        <i class="fas fa-star"></i>ફીચર કરો
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" action="/Admin/Posts/Unfeature/@post.PostID" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-action btn-unfeature" 
+                                            onclick="return confirm('શું તમે આ પોસ્ટને અનફીચર કરવા માંગો છો?')">
+                                        <i class="fas fa-star-half-alt"></i>અનફીચર કરો
+                                    </button>
+                                </form>
+                            }
+                        }
+                        
+                        <form method="post" action="/Admin/Posts/Delete/@post.PostID" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-action btn-delete" 
+                                    onclick="return confirm('શું તમે આ પોસ્ટને ડિલીટ કરવા માંગો છો? આ ક્રિયા પૂર્વવત્ કરી શકાશે નહીં.')">
+                                <i class="fas fa-trash"></i>ડિલીટ કરો
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="pagination-container">
+                    <nav aria-label="પેજિનેશન">
+                        <ul class="pagination">
+                            @if (Model.HasPrevious)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@BuildPaginationUrl(Model.PageNumber - 1)">પહેલાનું</a>
+                                </li>
+                            }
+                            
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" href="@BuildPaginationUrl(i)">@i</a>
+                                </li>
+                            }
+                            
+                            @if (Model.HasNext)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@BuildPaginationUrl(Model.PageNumber + 1)">આગલું</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h4>કોઈ પોસ્ટ્સ મળી નથી</h4>
+                <p>તમારા ફિલ્ટર અનુસાર કોઈ પોસ્ટ્સ મળી નથી.</p>
+                <a href="/Admin/Posts" class="btn btn-primary">બધી પોસ્ટ્સ જુઓ</a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">પોસ્ટ રિજેક્ટ કરો</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="postTitle" class="form-label">પોસ્ટ શીર્ષક:</label>
+                        <input type="text" id="postTitle" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">રિજેક્ટ કરવાનું કારણ: <span class="text-danger">*</span></label>
+                        <textarea name="rejectionReason" id="rejectionReason" class="form-control" rows="4" 
+                                  placeholder="કૃપા કરીને રિજેક્ટ કરવાનું કારણ લખો..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">રદ કરો</button>
+                    <button type="submit" class="btn btn-danger">રિજેક્ટ કરો</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showRejectModal(postId, postTitle) {
+            document.getElementById('postTitle').value = postTitle;
+            document.getElementById('rejectForm').action = `/Admin/Posts/Reject/${postId}`;
+            document.getElementById('rejectionReason').value = '';
+            
+            var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+        
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.post-checkbox:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            selectedCount.textContent = checkboxes.length;
+            
+            if (checkboxes.length > 0) {
+                bulkActions.classList.add('show');
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+        
+        function getSelectedPostIds() {
+            const checkboxes = document.querySelectorAll('.post-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function bulkApprove() {
+            const postIds = getSelectedPostIds();
+            if (postIds.length === 0) return;
+            
+            if (confirm(`શું તમે ${postIds.length} પોસ્ટ્સને મંજૂર કરવા માંગો છો?`)) {
+                // Implementation for bulk approve
+                console.log('Bulk approve:', postIds);
+            }
+        }
+        
+        function bulkReject() {
+            const postIds = getSelectedPostIds();
+            if (postIds.length === 0) return;
+            
+            const reason = prompt('બલ્ક રિજેક્ટ કરવાનું કારણ:');
+            if (reason && confirm(`શું તમે ${postIds.length} પોસ્ટ્સને રિજેક્ટ કરવા માંગો છો?`)) {
+                // Implementation for bulk reject
+                console.log('Bulk reject:', postIds, reason);
+            }
+        }
+        
+        function bulkFeature() {
+            const postIds = getSelectedPostIds();
+            if (postIds.length === 0) return;
+            
+            if (confirm(`શું તમે ${postIds.length} પોસ્ટ્સને ફીચર કરવા માંગો છો?`)) {
+                // Implementation for bulk feature
+                console.log('Bulk feature:', postIds);
+            }
+        }
+        
+        function refreshPosts() {
+            window.location.reload();
+        }
+        
+        // Auto-submit search after typing
+        let searchTimeout;
+        document.querySelector('input[name="search"]').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 1000);
+        });
+        
+        // Show loading state for form submissions
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>લોડ થઈ રહ્યું છે...';
+                }
+            });
+        });
+    </script>
+}
+
+@functions {
+    public string GetStatusText(bool isActive)
+    {
+        return isActive ? "સક્રિય" : "નિષ્ક્રિય";
+    }
+    
+    public string BuildPaginationUrl(int page)
+    {
+        var queryParams = new List<string>();
+        
+        if (!string.IsNullOrEmpty(ViewBag.SearchQuery?.ToString()))
+            queryParams.Add($"search={Uri.EscapeDataString(ViewBag.SearchQuery.ToString())}");
+            
+        if (!string.IsNullOrEmpty(ViewBag.Filter?.ToString()) && ViewBag.Filter.ToString() != "all")
+            queryParams.Add($"filter={ViewBag.Filter}");
+            
+        if (ViewBag.CategoryId != null)
+            queryParams.Add($"categoryId={ViewBag.CategoryId}");
+            
+        if (ViewBag.StateId != null)
+            queryParams.Add($"stateId={ViewBag.StateId}");
+            
+        if (ViewBag.DistrictId != null)
+            queryParams.Add($"districtId={ViewBag.DistrictId}");
+            
+        if (!string.IsNullOrEmpty(ViewBag.Status?.ToString()))
+            queryParams.Add($"status={ViewBag.Status}");
+            
+        queryParams.Add($"page={page}");
+        queryParams.Add($"size={ViewBag.PageSize ?? 20}");
+        
+        return "/Admin/Posts?" + string.Join("&", queryParams);
+    }
+}

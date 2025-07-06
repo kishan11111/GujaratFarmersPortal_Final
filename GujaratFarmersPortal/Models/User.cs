@@ -29,6 +29,10 @@
         public int TotalReviews { get; set; }
         public DateTime CreatedDate { get; set; }
 
+        public string? DistrictName { get; set; }
+        public string? StateName { get; set; }
+        public int TotalPosts { get; set; }
+
         // Computed Properties
         public string FullName => $"{FirstName} {LastName}";
         public string DisplayName => string.IsNullOrEmpty(FirstName) ? UserName : FullName;
@@ -133,6 +137,9 @@
         public bool IsDeleted { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
+        public string PostImage { get; set; }
+       
+        public bool IsApproved { get; set; }
 
         // Navigation Properties
         public string CategoryName { get; set; }
@@ -143,5 +150,9 @@
         public string DistrictName { get; set; }
         public string PrimaryImage { get; set; }
         public List<string> Images { get; set; } = new List<string>();
+
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+   
     }
 }
