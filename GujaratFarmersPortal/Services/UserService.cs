@@ -258,6 +258,20 @@ namespace GujaratFarmersPortal.Services
             }
         }
 
+        public async Task<Post> GetPostByIdAsync(int postID)
+        {
+            try
+            {
+                var result = await _userDataAccess.GetPostsAsync("GET_ALL", null, null, null, null, null, 1, 1);
+                return result.Items.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving post by ID: {PostID}", postID);
+                throw;
+            }
+        }
+
         public async Task<ApiResponse<string>> DeletePostAsync(int postID, int userID)
         {
             try

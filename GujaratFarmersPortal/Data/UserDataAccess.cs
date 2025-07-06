@@ -440,6 +440,45 @@ namespace GujaratFarmersPortal.Data
             }
         }
 
+        public async Task<PagedResult<Post>> GetPostsAsync(string mode = "GET_ALL", string searchKeyword = null, int? categoryID = null, int? stateID = null, int? districtID = null, string status = null, int pageNumber = 1, int pageSize = 20)
+        {
+            try
+            {
+                var parameters = new
+                {
+                    Mode = mode,
+                    SearchKeyword = searchKeyword,
+                    CategoryID = categoryID,
+                    StateID = stateID,
+                    DistrictID = districtID,
+                    Status = status,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
+                };
+
+                using var multi = await _connection.QueryMultipleAsync("sp_AdminPostManagement", parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                var posts = await multi.ReadAsync<Post>();
+                var totalRecords = await multi.ReadFirstOrDefaultAsync<int>();
+
+                return new PagedResult<Post>
+                {
+                    Items = posts.ToList(),
+                    TotalRecords = totalRecords,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
+                    HasPrevious = pageNumber > 1,
+                    HasNext = pageNumber < Math.Ceiling((double)totalRecords / pageSize)
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting posts: {ex.Message}", ex);
+            }
+        }
+
         public async Task<ApiResponse<string>> UpdatePostAsync(PostCreateViewModel model, int userID, List<string> newImageUrls)
         {
             try

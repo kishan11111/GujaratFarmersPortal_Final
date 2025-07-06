@@ -43,6 +43,8 @@ namespace GujaratFarmersPortal.Services
 
         // Analytics
         Task<ApiResponse<string>> LogUserActivityAsync(int userID, string activity, int? referenceID = null);
+
+        Task<Post> GetPostByIdAsync(int postID);
     }
 
     // Supporting Models for User Service
